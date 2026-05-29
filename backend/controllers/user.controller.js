@@ -14,7 +14,7 @@ const getHome = (req, res) => {
             });
         }
 
-        return res.render("Log-in", {
+        return res.render("Home", { //TODO: Change to login page when implemented
             layout: "",
             title: "RiceNRoll Inventory | Log In",
             css: ""
