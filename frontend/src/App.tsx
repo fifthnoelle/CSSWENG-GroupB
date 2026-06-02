@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
-import Inventory from './pages/Inventory'
+import Inventory from './pages/StaffInventory'
 
 function App() {
   return (
