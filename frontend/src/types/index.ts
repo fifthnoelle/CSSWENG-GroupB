@@ -39,6 +39,7 @@ export interface Log {
   quantityChanged: number
   previousStock: number
   newStock: number
+  measurementUnit: string
   notes: string
   actionTime: string
 }
