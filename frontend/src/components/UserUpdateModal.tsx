@@ -39,6 +39,7 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
             quantityChanged: 0,
             previousStock: 0,
             newStock: 0,
+            measurementUnit: '',
             notes: changes.join('; '),
             actionTime: new Date().toISOString()
         }
