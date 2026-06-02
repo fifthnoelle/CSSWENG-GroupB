@@ -24,15 +24,21 @@ export interface InventoryItem {
 }
 
 // ── Logs Collection ────────────────────────────────────────
-export type ActionType = 'used-today' | 'restock'
+export type ActionType = 'used-today' | 'restock' | 'add-item' | 'edit-item' | 'delete-item' | 'add-user' | 'edit-user' | 'delete-user' | 'login' | 'logout' | 'edit-role'
+export type LogType = 'inventory' | 'accounts' | 'auth'
 
 export interface Log {
   _id: string
   userId: string
+  logType: LogType
+  userName: string
+  userTarget: string
+  userTargetName: string  //only when userTarget is a user, otherwise empty string
   itemId: string
   actionType: ActionType
   quantityChanged: number
   previousStock: number
   newStock: number
+  notes: string
   actionTime: string
 }
