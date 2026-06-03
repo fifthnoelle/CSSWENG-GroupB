@@ -1,6 +1,7 @@
 //ALL USER RELATED CONTROLLER FUNCTIONS
 const UsersModel = require("../models/user.model");
 const { hashPassword } = require("../utils/auth");
+const bcrypt = require ("bcrypt");
 
 const getHome = (req, res) => {
     try {
@@ -30,11 +31,23 @@ const login = async (req, res) => {
         const { email, password } = req.body;
 
         //TODO: Authentication Implemntation
+        const user = await UserModel.findOne({email});
+
+        if (!user){ 
+            return res.status(401).json({ error: "Invalid email or password"});
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch){
+            return res.status(401).json({ error: "Invalid email or password"});
+        }
+        // Store session details (IS THIS NEEDED FOR IMPLEMENTATION YET? IF NOT JUST DELETE)
+        req.session.email = user.email;
+        req.session.role = user.role;
+        req.session.Id = user.Id;
+
+        return res.status(200).json({ message: "Successful login", role: user.role})
         
-        return res.render("blabla", {
-            Blabla: "Blabla",
-            Varname: email
-        });
     } catch (error) {
         console.error("Error in login:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -68,15 +81,23 @@ const register = async (req, res) => {
         }
         
         //TODO: Check if user already exists
+        const existingUser = await UsersModel.findOne({email});
+        if (exisitingUser)
+        {
+            return res.status(409).json({ error: "User already exists with the same email" });
+        }
+        
+        //Password hashing
+        const hashedPassword = await hashPassword(password);
         
         const newUser = new UsersModel({
             email,
             firstName,
             lastName,
-            password, //TODO: hashedPassword
+            password: hashedPassword, //TODO: hashedPassword
             role: role || 'staff'
         });
-
+    
         await newUser.save();
         console.log("User created successfully:", email);
         res.status(201).json({ 
