@@ -28,7 +28,9 @@ app.engine("hbs", handlebars.engine({
 //Routes
 const userRoutes = require('./routes/user.routes');
 app.use('/', userRoutes);
-
+//Inventory Route
+const inventoryRoutes = require('./routes/inventory.routes');
+app.use('/inventory', inventoryRoutes);
 module.exports = app;
 
 
