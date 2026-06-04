@@ -242,4 +242,4 @@ function AccountManager() {
   )
 }
 
-export default AccountsManagement
+export default AccountManager

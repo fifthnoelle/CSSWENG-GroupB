@@ -43,12 +43,10 @@ function InventoryCard({
   item,
   onAddClick,
   onEditClick,
-  onDeleteClick,
 }: {
   item: InventoryItem
   onAddClick: () => void
   onEditClick: () => void
-  onDeleteClick: () => void
 }) {
   const s = statusConfig[getStatus(item)]
   return (
@@ -123,10 +121,6 @@ function AdminInventory() {
     // TODO: call updateStock(selectedItem._id, actionType, quantityChanged) from inventory.service.ts
   }
 
-  function handleDelete(id: string) {
-    setItems(prev => prev.filter(i => i._id !== id))
-    // TODO: call deleteItem(id) from inventory.service.ts
-  }
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -204,7 +198,6 @@ function AdminInventory() {
                 item={item}
                 onAddClick={() => setSelectedItem(item)}
                 onEditClick={() => { /* TODO: open edit ingredient modal */ }}
-                onDeleteClick={() => handleDelete(item._id)}
               />
             ))}
           </div>
