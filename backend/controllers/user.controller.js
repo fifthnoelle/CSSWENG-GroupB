@@ -69,6 +69,24 @@ const logout = async (req, res) => {
     }
 };
 
+// getUser API to fetch currently logged-in user's details
+const getUser = async (req, res) => {
+    try {
+        // Query database using the session's userId
+        // .select("-password") ensures we don't send the hashed password to the frontend
+        const user = await UsersModel.findById(req.session.userId).select("-password");
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error("Error in getUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //ADMIN ONLY 
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
@@ -117,5 +135,6 @@ module.exports = {
     getHome,
     login,
     register,
-    logout
+    logout,
+    getUser 
 };
