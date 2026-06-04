@@ -68,7 +68,7 @@ function Login() {
           <button
             id="btn-login"
             type="button"
-            onClick={() => navigate('/inventory')}
+            onClick={() => navigate('/admin/inventory')}
             className="w-full h-14 bg-[#93191d] rounded-md text-white text-base font-[Inter] hover:bg-[#7a1518] transition-colors"
           >
             Sign in
