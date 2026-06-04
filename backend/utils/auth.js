@@ -8,7 +8,22 @@ const hashPassword = (password) => {
 
 //Middleware to check if user is admin
 //TODO: IMPLEMENT - Ensure req.session.role is set during login. This middleware protects admin routes.
+
+// Middleware to check if user is authenticated
+const requireAuth = (req, res, next) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized access. Please log in." });
+    }
+    next();
+};
+
+// Middleware to check if user is admin
 const requireAdmin = (req, res, next) => {
+    // check if user is logged in
+    if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized access. Please log in." });
+    }
+    // check role 
     if (req.session.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
     }
@@ -17,5 +32,6 @@ const requireAdmin = (req, res, next) => {
 
 module.exports = { 
     hashPassword,
+    requireAuth,
     requireAdmin
 };
