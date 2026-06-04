@@ -1,0 +1,245 @@
+import { useState } from 'react'
+import type { User } from '../types'
+import Sidebar from '../components/Sidebar'
+import RemoveAccountModal from '../components/RemoveAccountModal'
+import UserUpdateModal from '../components/UserUpdateModal'
+
+const adminNavItems = [
+  { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
+  { label: 'Logs',      icon: '/assets/icon-document.svg',  path: '/logs'            },
+  { label: 'Reports',   icon: '/assets/icon-chart.svg',     path: '/reports'         },
+  { label: 'Accounts',  icon: '/assets/icon-account.svg',   path: '/accounts'        },
+]
+
+// Static seed data — replace with getUsers() from a user.service.ts once backend is ready
+const seedUsers: User[] = [
+  { _id: 'USR-0001', firstName: 'John',  lastName: 'Doe',        email: 'john.doe@gmail.com',         role: 'admin', createdAt: 'May 15, 2024 | 10:30 AM' },
+  { _id: 'USR-0002', firstName: 'Marie', lastName: 'Santos',     email: 'marie.santos@gmail.com',     role: 'admin', createdAt: 'May 23, 2024 | 09:15 AM' },
+  { _id: 'USR-0003', firstName: 'James', lastName: 'Reyes',      email: 'james.reyes@gmail.com',      role: 'staff', createdAt: 'May 27, 2024 | 02:45 PM' },
+  { _id: 'USR-0004', firstName: 'Ana',   lastName: 'Dela Cruz',  email: 'ana.delacruz@gmail.com',     role: 'staff', createdAt: 'May 27, 2024 | 01:15 PM' },
+  { _id: 'USR-0005', firstName: 'Mark',  lastName: 'Villanueva', email: 'mark.villanueva@gmail.com',  role: 'staff', createdAt: 'June 13, 2024 | 03:10 PM' },
+  { _id: 'USR-0006', firstName: 'Lisa',  lastName: 'Gonzales',   email: 'lisa.gonzales@gmail.com',    role: 'staff', createdAt: 'June 13, 2024 | 08:50 AM' },
+]
+
+// Avatar background colors cycled per user
+const avatarColors = [
+  { bg: 'bg-[#fecaca]', text: 'text-[#93191d]' },
+  { bg: 'bg-[#fed7aa]', text: 'text-[#c2410c]' },
+  { bg: 'bg-[#d3f9e0]', text: 'text-[#073517]' },
+  { bg: 'bg-[#ddd6fe]', text: 'text-[#4c1d95]' },
+  { bg: 'bg-[#bfdbfe]', text: 'text-[#1e3a8a]' },
+  { bg: 'bg-[#fde68a]', text: 'text-[#78350f]' },
+]
+
+function UserCard({
+  user,
+  colorIndex,
+  onEditClick,
+  onRemoveClick,
+}: {
+  user: User
+  colorIndex: number
+  onEditClick: () => void
+  onRemoveClick: () => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const color = avatarColors[colorIndex % avatarColors.length]
+  const initials = `${user.firstName[0]}${user.lastName[0]}`
+  const isAdmin = user.role === 'admin'
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#dee1e6] shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] p-4 relative">
+
+      {/* Name row */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${color.bg}`}>
+          <span className={`font-[Archivo] text-sm font-bold ${color.text}`}>{initials}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-[Archivo] text-sm font-bold text-[#171a1f] truncate">
+            {user.firstName} {user.lastName}
+          </p>
+          <span className={`inline-block text-[10px] font-semibold font-[Archivo] px-2.5 py-0.5 rounded-full mt-1 ${
+            isAdmin ? 'bg-[#FFE4E6] text-[#93191d]' : 'bg-[#D1FAE5] text-[#047857]'
+          }`}>
+            {isAdmin ? 'Admin' : 'Staff'}
+          </span>
+        </div>
+
+        {/* Three dots menu */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="p-1 rounded-md hover:bg-gray-100 cursor-pointer"
+          >
+            <img className="w-5 h-5" src="/assets/icon-dots-vertical.svg" alt="menu" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-8 w-36 bg-white border border-[#dee1e6] rounded-lg shadow-md z-10 overflow-hidden">
+              <button
+                onClick={() => { setMenuOpen(false); onEditClick() }}
+                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#171a1f] hover:bg-gray-50 cursor-pointer"
+              >
+                Edit Account
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); onRemoveClick(); }}
+                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#93191d] hover:bg-[#fff5f5] cursor-pointer"
+              >
+                Remove Account
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-[#dee1e6] mb-3" />
+
+      {/* User details */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-2">
+          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-account.svg" alt="user" />
+          <div>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0]">User ID</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">{user._id}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-mail.svg" alt="email" />
+          <div>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Email</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] truncate">{user.email}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-calendar.svg" alt="date" />
+          <div>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Created At</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">{user.createdAt}</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
+
+function AccountManager() {
+  const [users, setUsers] = useState<User[]>(seedUsers)
+  const [userToRemove, setUserToRemove] = useState<User | null>(null)
+  const [userToEdit, setUserToEdit] = useState<User | null>(null)
+
+  function handleRemove(userId: string) {
+    setUsers(prev => prev.filter(u => u._id !== userId))
+    setUserToRemove(null)
+    // TODO: call DELETE /users/:id from user.service.ts
+  }
+
+  return (
+    <div className="h-screen bg-white flex overflow-hidden">
+
+      <Sidebar user={adminUser} navItems={adminNavItems} />
+
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+
+        {/* Header */}
+        <header className="h-16 border-b border-[#dee1e6] flex items-center px-4 gap-3 shrink-0 bg-white z-10">
+          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 rounded-md">
+            <img className="w-4 h-4 shrink-0" src="/assets/icon-search.svg" alt="search" />
+            <input
+              type="text"
+              placeholder="Search accounts..."
+              className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
+            />
+          </div>
+          <div className="relative shrink-0">
+            <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center">
+              <span className="font-[Archivo] text-white text-[10px]">5</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-4 lg:p-6 pb-24 md:pb-6 overflow-y-auto min-h-0">
+
+          {/* Title + controls */}
+          <div className="flex flex-col gap-3 mb-6">
+            <div>
+              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Accounts Management</h1>
+              <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">Create, edit, and manage user accounts.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 h-10 bg-white border border-[#dee1e6] rounded-md shadow-sm cursor-pointer">
+                <img className="w-4 h-4 shrink-0" src="/assets/icon-filter.svg" alt="filter" />
+                <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">Filter: All</span>
+                <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              </div>
+              <button className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto">
+                <img className="w-4 h-4" src="/assets/icon-plus.svg" alt="plus" />
+                <span className="font-[Archivo] text-sm font-medium text-white whitespace-nowrap">Create Account</span>
+              </button>
+            </div>
+          </div>
+
+          {/* User cards grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {users.map((user, i) => (
+              <UserCard
+                key={user._id}
+                user={user}
+                colorIndex={i}
+                onEditClick={() => setUserToEdit(user)}
+                onRemoveClick={() => setUserToRemove(user)}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
+        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
+          <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
+          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Inventory</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
+          <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
+          <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Accounts</span>
+        </div>
+      </nav>
+
+      {/* Edit Account Modal */}
+      {userToEdit && (
+        <UserUpdateModal
+          user={userToEdit}
+          userId={adminUser.firstName[0] + adminUser.lastName[0]}
+          onClose={() => setUserToEdit(null)}
+          onSave={(email, firstName, lastName, role) => {
+            setUsers(prev => prev.map(u =>
+              u._id === userToEdit._id
+                ? { ...u, email, firstName, lastName, role }
+                : u
+            ))
+            setUserToEdit(null)
+            // TODO: call PATCH /users/:id from user.service.ts
+          }}
+        />
+      )}
+
+      {/* Remove Account Modal */}
+      {userToRemove && (
+        <RemoveAccountModal
+          user={userToRemove}
+          onClose={() => setUserToRemove(null)}
+          onConfirm={handleRemove}
+        />
+      )}
+
+    </div>
+  )
+}
+
+export default AccountsManagement

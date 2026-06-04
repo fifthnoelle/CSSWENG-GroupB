@@ -3,6 +3,7 @@ export interface User {
   _id: string
   email: string
   firstName: string
+  middleName?: string
   lastName: string
   role: 'admin' | 'staff'
   createdAt: string
@@ -24,8 +25,13 @@ export interface InventoryItem {
 }
 
 // ── Logs Collection ────────────────────────────────────────
-export type ActionType = 'used-today' | 'restock' | 'add-item' | 'edit-item' | 'delete-item' | 'add-user' | 'edit-user' | 'delete-user' | 'login' | 'logout' | 'edit-role'
-export type LogType = 'inventory' | 'accounts' | 'auth'
+export type LogType = 'inventory' | 'accounts'
+
+export type ActionType =
+  | 'used-today'
+  | 'restock'
+  | 'edit-user'
+  | 'edit-role'
 
 export interface Log {
   _id: string
@@ -33,7 +39,7 @@ export interface Log {
   logType: LogType
   userName: string
   userTarget: string
-  userTargetName: string  //only when userTarget is a user, otherwise empty string
+  userTargetName: string  // only when target is a user, otherwise empty string
   itemId: string
   actionType: ActionType
   quantityChanged: number

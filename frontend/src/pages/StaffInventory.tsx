@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
+import Sidebar from '../components/Sidebar'
+
+const staffNavItems = [
+  { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/inventory' },
+]
+
+const staffUser = { firstName: 'James', lastName: 'Reyes', role: 'Staff' }
 
 // ── Static seed data (replace with getInventory() call from inventory.service.ts) ──
 const seedItems: InventoryItem[] = [
@@ -84,37 +91,7 @@ function Inventory() {
   return (
     <div className="h-screen bg-white flex overflow-hidden">
 
-      {/* ── Sidebar ── */}
-      <aside className="hidden md:flex flex-col border-r border-[#dee1e6] h-full shrink-0 w-16 lg:w-64">
-        <div className="flex items-center gap-3 px-3 lg:px-5 h-16 shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
-            <img src="/assets/logo.png" className="w-full h-full object-cover" alt="logo" />
-          </div>
-          <div className="hidden lg:block overflow-hidden">
-            <p className="font-[Archivo] text-[#93191d] text-lg font-bold leading-tight truncate">Rice 'N' Roll</p>
-            <p className="font-[Archivo] text-[#171a1f] text-base font-bold leading-tight truncate">Inventory</p>
-          </div>
-        </div>
-        <div className="border-t border-[#dee1e6]" />
-        <nav className="flex-1 p-2 pt-4">
-          <div className="flex items-center gap-3 px-2 lg:px-3 py-3 bg-[#fdf2f2] rounded-md">
-            <img className="w-5 h-5 shrink-0" src="/assets/icon-inventory.svg" alt="inventory" />
-            <span className="hidden lg:block font-[Archivo] text-sm font-bold text-[#93191d]">Inventory</span>
-          </div>
-        </nav>
-        <div className="p-2 lg:p-3 border-t border-[#dee1e6]">
-          <div className="flex items-center gap-3 p-2 border border-[#bcc1ca] rounded-md">
-            <div className="w-9 h-9 rounded-full bg-[#d3f9e0] flex items-center justify-center shrink-0">
-              <span className="font-[Archivo] text-xs font-bold text-[#073517]">JR</span>
-            </div>
-            <div className="hidden lg:block flex-1 min-w-0">
-              <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] truncate">James Reyes</p>
-              <p className="font-[Archivo] text-sm text-[#9095a0]">Staff</p>
-            </div>
-            <img className="hidden lg:block w-4 h-4 shrink-0" src="/assets/icon-arrow-down.svg" alt="expand" />
-          </div>
-        </div>
-      </aside>
+      <Sidebar user={staffUser} navItems={staffNavItems} />
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
