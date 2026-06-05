@@ -3,29 +3,11 @@ const UsersModel = require("../models/user.model");
 const { hashPassword } = require("../utils/auth");
 const bcrypt = require ("bcrypt");
 
-const getHome = (req, res) => {
-    try {
-        console.log("session email:", req.session.email);
-
-        if (req.session.email) {
-            return res.render("Home", {
-                layout: "",
-                title: "RiceNRoll Inventory | Home",
-                css: ""
-            });
-        }
-
-        return res.render("Home", { //TODO: Change to login page when implemented
-            layout: "",
-            title: "RiceNRoll Inventory | Log In",
-            css: ""
-        });
-    } catch (error) {
-        console.error("Error in getHome:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-};
-
+/*
+    TODO: 
+    - update user details (admin only)
+    - delete user (admin only)
+*/
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -87,6 +69,16 @@ const getUser = async (req, res) => {
     }
 };
 
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await UsersModel.find().select("-password");
+        return res.status(200).json(users);
+    } catch (error) {
+        console.error("Error in getAllUsers:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //ADMIN ONLY 
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
@@ -132,9 +124,9 @@ const register = async (req, res) => {
 
 //Exports for routes
 module.exports = {
-    getHome,
     login,
     register,
     logout,
-    getUser 
+    getUser ,
+    getAllUsers
 };
