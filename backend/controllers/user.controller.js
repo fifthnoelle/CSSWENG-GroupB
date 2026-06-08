@@ -76,6 +76,10 @@ const logout = async (req, res) => {
 // getUser API to fetch currently logged-in user's details
 const getUser = async (req, res) => {
     try {
+        if (!req.session.userId) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
         // Query database using the session's userId
         // .select("-password") ensures we don't send the hashed password to the frontend
         const user = await UsersModel.findById(req.session.userId).select("-password");
