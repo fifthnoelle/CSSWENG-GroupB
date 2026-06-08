@@ -1,7 +1,7 @@
 // Auth service — all API calls for authentication
 // Replace BASE_URL with the actual backend URL once connected
 
-export const BASE_URL = 'mongodb+srv://ricenroll:fQr9pDek3iMxTD0I@cluster0.jmti9v4.mongodb.net/?appName=Cluster0'
+export const BASE_URL = 'https://ricenroll-web-service.onrender.com'
 
 export async function login(email: string, password: string) {
   const res = await fetch(`${BASE_URL}/login`, {
