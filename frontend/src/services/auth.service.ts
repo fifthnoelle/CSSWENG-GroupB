@@ -27,7 +27,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function getUser() {
-  const res = await fetch(`${BASE_URL}/current-user`, { credentials: 'include' })
+  const res = await fetch(`${BASE_URL}/user`, { credentials: 'include' })
   if (!res.ok) throw new Error('Failed to fetch user')
   return res.json()
 }
