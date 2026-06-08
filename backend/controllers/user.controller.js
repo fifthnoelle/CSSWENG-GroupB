@@ -147,8 +147,9 @@ const register = async (req, res) => {
 //Exports for routes
 module.exports = {
     login,
+    home,
     register,
     logout,
-    getUser ,
+    getUser,
     getAllUsers
 };
