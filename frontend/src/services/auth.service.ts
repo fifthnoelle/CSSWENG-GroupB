@@ -10,7 +10,19 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error('Invalid email or password')
+
+  if (!res.ok) {
+    let errorMessage = 'Invalid email or password'
+    try {
+      const errorBody = await res.json()
+      if (errorBody?.error) errorMessage = errorBody.error
+      else if (errorBody?.message) errorMessage = errorBody.message
+    } catch {
+      // ignore invalid JSON body
+    }
+    throw new Error(errorMessage)
+  }
+
   return res.json()
 }
 

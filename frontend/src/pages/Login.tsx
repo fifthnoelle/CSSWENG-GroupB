@@ -31,7 +31,8 @@ function Login() {
         navigate('/inventory')
       }
     } catch (err) {
-      setError('Unable to sign in. Please check your email and password.')
+      const message = err instanceof Error ? err.message : 'Unable to sign in. Please check your email and password.'
+      setError(message)
     } finally {
       setLoading(false)
     }

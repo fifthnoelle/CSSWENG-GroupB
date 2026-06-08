@@ -3,6 +3,20 @@ const UsersModel = require("../models/user.model");
 const { hashPassword } = require("../utils/auth");
 const bcrypt = require ("bcrypt");
 
+const plainPassword = 'admin1234';
+const saltRounds = 10;
+
+/*
+For creating bcrypt hash for testing purposes. 
+Run this code generate the hash, then copy the output 
+and use it as the password field when creating users 
+directly in the database for testing login functionality.
+bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
+    console.log("Your bcrypt hash is:", hash);
+    // Output will look similar to: $2b$10$... (copy this string)
+});
+/
+
 /*
     TODO: 
     - update user details (admin only)
