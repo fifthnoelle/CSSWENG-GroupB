@@ -55,28 +55,8 @@ const login = async (req, res) => {
 };
 
 const home = (req, res) => {
-    try {
-        console.log("session email:", req.session.email);
-
-        if (req.session.email) {
-            return res.render("Home", {
-                layout: "",
-                title: "RiceNRoll Inventory | Home",
-                css: ""
-            });
-        }
-
-        return res.render("Home", { //TODO: Change to login page when implemented
-            layout: "",
-            title: "RiceNRoll Inventory | Home",
-            css: ""
-        });
-    } catch (error) {
-        console.error("Error in getHome:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    res.status(200).json({ status: "OK", message: "RiceEnroll backend is running" });
 };
-
 
 const logout = async (req, res) => {
     try {
