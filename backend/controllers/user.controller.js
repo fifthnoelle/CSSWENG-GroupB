@@ -26,8 +26,12 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and password are required" });
+        }
+
         //TODO: Authentication Implemntation
-        const user = await UsersModel.findOne({email});
+        const user = await UsersModel.findOne({ email });
 
         if (!user){ 
             return res.status(401).json({ error: "Invalid email"});
@@ -48,6 +52,10 @@ const login = async (req, res) => {
         console.error("Error in login:", error);
         res.status(500).json({ error: "Internal server error" });
     }
+};
+
+const home = (req, res) => {
+    res.status(200).json({ status: "OK", message: "RiceEnroll backend is running" });
 };
 
 const logout = async (req, res) => {
