@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login, getUser } from '../services/auth.service'
 import { useUser } from '../context/UserContext'
-import type { User } from '../types'
+//import type { User } from '../types'
 
-async function authenticate(email: string, password: string): Promise<User> {
-  await login(email, password)
-  return getUser()
+async function authenticate(email: string, password: string) {
+  return login(email, password)
 }
 
 function Login() {
@@ -23,9 +22,9 @@ function Login() {
     setLoading(true)
 
     try {
-      const user = await authenticate(email, password)
+      const authResult = await authenticate(email, password)
       await refreshUser()
-      if (user.role === 'admin') {
+      if (authResult.role === 'admin') {
         navigate('/admin/inventory')
       } else {
         navigate('/inventory')
