@@ -1,11 +1,16 @@
 const express = require("express");
 const session = require('express-session');
+const cors = require('cors');
 const app = express();
 
 //Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use(cors({
+  origin: 'https://ricenroll-inventory.onrender.com',
+  credentials: true
+}));
 
 //Session configuration
 //TODO: IMPLEMENT - Configure session store (e.g., MongoDB session store) for production
