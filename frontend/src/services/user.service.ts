@@ -9,8 +9,7 @@ export async function getAllUsers(): Promise<User[]> {
   return res.json()
 }
 
-/*
-WAITING FOR BACKEND IMPLEMENTATION
+
 export async function createUser(data: { email: string, firstName: string, lastName: string, password: string, role: 'admin' | 'staff' }) {
     const res = await fetch('${BASE_URL}/register', {
         method: 'POST',
@@ -21,7 +20,6 @@ export async function createUser(data: { email: string, firstName: string, lastN
     if (!res.ok) throw new Error('Failed to create user')
     return res.json()
 }
-*/
 
 /*
 WAITING FOR BACKEND IMPLEMENTATION
@@ -36,6 +34,8 @@ export async function updateUser(userId: string, data: Partial<User>) {
 }
 */
 
+/*
+WAITING FOR BACKEND IMPLEMENTATION
 export async function deleteUser(userId: string) {
   const res = await fetch('${BASE_URL}/delete-user/${userId}', {
     method: 'DELETE',
@@ -43,3 +43,4 @@ export async function deleteUser(userId: string) {
   })
   if (!res.ok) throw new Error('Failed to delete user')
 }
+  */

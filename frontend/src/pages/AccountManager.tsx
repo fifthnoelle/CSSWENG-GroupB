@@ -3,7 +3,7 @@ import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
-import { getAllUsers, deleteUser, createUser } from '../services/user.service'
+import { getAllUsers, /*deleteUser, createUser*/ } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -133,7 +133,7 @@ function AccountManager() {
   function handleRemove(userId: string) {
     setUsers(prev => prev.filter(u => u._id !== userId))
     setUserToRemove(null)
-    deleteUser(userId)
+    /*deleteUser(userId)*/
   }
 
   return (
