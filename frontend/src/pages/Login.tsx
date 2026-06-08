@@ -16,6 +16,7 @@ function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
     setError(null)
@@ -87,13 +88,18 @@ function Login() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="flex-1 text-sm font-[Inter] text-[#bcc1ca] placeholder:text-[#bcc1ca] outline-none bg-transparent"
               />
-              <img className="w-4 h-4 shrink-0" src="/assets/icon-eye-off.svg" alt="hide" />
+              <img 
+                className="w-4 h-4 shrink-0 cursor-pointer" 
+                src={showPassword ? "/assets/icon-eye.svg" : "/assets/icon-eye-off.svg"} 
+                alt={showPassword ? "show" : "hide"}
+                onClick={() => setShowPassword(!showPassword)}
+              />
             </div>
           </div>
 
