@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login, getUser } from '../services/auth.service'
+import { login} from '../services/auth.service'
 import { useUser } from '../context/UserContext'
 //import type { User } from '../types'
 
