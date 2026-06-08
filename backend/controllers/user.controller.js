@@ -15,7 +15,7 @@ bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
     console.log("Your bcrypt hash is:", hash);
     // Output will look similar to: $2b$10$... (copy this string)
 });
-/
+*/
 
 /*
     TODO: 
@@ -30,12 +30,12 @@ const login = async (req, res) => {
         const user = await UsersModel.findOne({email});
 
         if (!user){ 
-            return res.status(401).json({ error: "Invalid email or password"});
+            return res.status(401).json({ error: "Invalid email"});
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch){
-            return res.status(401).json({ error: "Invalid email or password"});
+            return res.status(401).json({ error: "Invalid password"});
         }
         // Store session details (IS THIS NEEDED FOR IMPLEMENTATION YET? IF NOT JUST DELETE)
         req.session.email = user.email;
