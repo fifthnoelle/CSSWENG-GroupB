@@ -4,8 +4,9 @@ import { login, getUser } from '../services/auth.service'
 import { useUser } from '../context/UserContext'
 import type { User } from '../types'
 
-async function authenticate(email: string, password: string) {
-  return login(email, password)
+async function authenticate(email: string, password: string): Promise<User> {
+  await login(email, password)
+  return getUser()
 }
 
 function Login() {
@@ -22,9 +23,9 @@ function Login() {
     setLoading(true)
 
     try {
-      const authResult = await authenticate(email, password)
+      const user = await authenticate(email, password)
       await refreshUser()
-      if (authResult.role === 'admin') {
+      if (user.role === 'admin') {
         navigate('/admin/inventory')
       } else {
         navigate('/inventory')
