@@ -5,7 +5,7 @@ const connectDB = require("./db");
 connectDB();
 
 // Default port for development. Change directly in this file if needed.
-const PORT = 3000;
+//const PORT = 3000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
