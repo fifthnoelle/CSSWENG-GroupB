@@ -1,5 +1,5 @@
 import type { User } from '../types'
-import { BASE_URL } from './auth.service'
+//import { BASE_URL } from './auth.service'
 
 export async function getAllUsers(): Promise<User[]> {
   const res = await fetch('${BASE_URL}/load-users', {
@@ -9,6 +9,8 @@ export async function getAllUsers(): Promise<User[]> {
   return res.json()
 }
 
+/*
+WAITING FOR BACKEND IMPLEMENTATION
 export async function createUser(data: { email: string, firstName: string, lastName: string, password: string, role: 'admin' | 'staff' }) {
     const res = await fetch('${BASE_URL}/register', {
         method: 'POST',
@@ -19,7 +21,10 @@ export async function createUser(data: { email: string, firstName: string, lastN
     if (!res.ok) throw new Error('Failed to create user')
     return res.json()
 }
+*/
 
+/*
+WAITING FOR BACKEND IMPLEMENTATION
 export async function updateUser(userId: string, data: Partial<User>) {
   const res = await fetch('${BASE_URL}/update-user/${userId}', {
     method: 'PUT',
@@ -29,6 +34,7 @@ export async function updateUser(userId: string, data: Partial<User>) {
   })
   if (!res.ok) throw new Error('Failed to update user')
 }
+*/
 
 export async function deleteUser(userId: string) {
   const res = await fetch('${BASE_URL}/delete-user/${userId}', {
