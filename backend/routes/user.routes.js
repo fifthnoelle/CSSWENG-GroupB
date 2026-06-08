@@ -9,7 +9,8 @@ const {
 } = require("../utils/auth");
 
 //Routes only
-router.get("/", userController.login);
+router.get("/", userController.home);
+router.get("/current-user", userController.getUser);
 router.post("/login", userController.login);
 router.post("/logout", userController.logout);
 //TODO: Add authentication middleware to requireAdmin when login is complete
