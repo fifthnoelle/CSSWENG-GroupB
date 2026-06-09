@@ -1,6 +1,7 @@
 const express = require("express");
 const session = require('express-session');
 const cors = require('cors');
+const MongoStore = require('connect-mongo').default;
 const app = express();
 
 //Middleware
@@ -19,8 +20,14 @@ app.use(session({
     // Change this value directly in this file for class projects.
     secret: 'your-secret-key-change-in-production',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } //TODO: Set to true when using HTTPS
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+    cookie: {
+        secure: true,
+        sameSite: 'none',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24
+    }//TODO: Set to true when using HTTPS
 }));
 
 //Handlebars view engine
