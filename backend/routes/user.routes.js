@@ -13,7 +13,6 @@ router.get("/", userController.home);
 router.get("/current-user", requireAuth, userController.getUser);
 router.post("/login", userController.login);
 router.post("/logout", userController.logout);
-//TODO: Add authentication middleware to requireAdmin when login is complete
 router.get("/load-users", requireAdmin, userController.getAllUsers);
 router.post("/register", requireAdmin, userController.register);
 

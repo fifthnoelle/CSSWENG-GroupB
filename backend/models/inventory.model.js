@@ -11,6 +11,8 @@ const Inventory = new mongoose.Schema({
 
     lowStockThreshold: { type: Number, required: true },
 
+    currentStock: { type: Number, default: function() { return this.startingStock; } },
+
     createdBy: { type: String, required: true },
 
     createdAt: { type: Date, default: Date.now }

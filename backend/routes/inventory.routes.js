@@ -7,5 +7,6 @@ const {
 
 // POST /inventory
 router.post("/", createItem);
+router.post("/update-stock/:id", updateStock);
 
 module.exports = router;
