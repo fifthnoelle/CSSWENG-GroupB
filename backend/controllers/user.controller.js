@@ -148,6 +148,34 @@ const register = async (req, res) => {
     }
 };
 
+// NEW: deleteUser API to remove a user from the database
+const deleteUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Optional safety check: Prevent the admin from deleting their own account while logged in
+        if (req.session.userId === userId) {
+            return res.status(400).json({ error: "You cannot delete your own active session account." });
+        }
+
+        // Find the user by ID and delete them
+        const deletedUser = await UsersModel.findByIdAndDelete(userId);
+
+        if (!deletedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json({ 
+            message: "User deleted successfully", 
+            id: deletedUser._id 
+        });
+
+    } catch (error) {
+        console.error("Error in deleteUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //Exports for routes
 module.exports = {
     login,
@@ -155,5 +183,6 @@ module.exports = {
     register,
     logout,
     getUser,
+    deleteUser 
     getAllUsers
 };

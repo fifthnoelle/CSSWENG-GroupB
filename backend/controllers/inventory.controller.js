@@ -59,6 +59,66 @@ const createItem = async (req, res) => {
     }
 };
 
+// NEW GET ITEMS API
+const getItems = async (req, res) => {
+    try {
+        // Fetches all inventory items from the database
+        const items = await InventoryModel.find();
+        return res.status(200).json(items);
+    } catch (error) {
+        console.error("Error fetching items:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// NEW SEARCH ITEMS API
+const searchItems = async (req, res) => {
+    try {
+        const { query } = req.query; // Extracts ?query=... from the URL
+
+        if (!query) {
+            return res.status(400).json({ error: "Search query is required" });
+        }
+
+        // Search the database using a case-insensitive regular expression on itemName
+        const items = await InventoryModel.find({
+            itemName: { $regex: query, $options: 'i' }
+        });
+
+        return res.status(200).json(items);
+    } catch (error) {
+        console.error("Error searching items:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// NEW EDIT ITEM DETAILS API
+const updateItem = async (req, res) => {
+    try {
+        const itemId = req.params.id;
+        const updateData = req.body;
+
+        // findByIdAndUpdate takes the ID, the new data, and an options object
+        // { new: true } ensures it returns the updated document, not the old one
+        const updatedItem = await InventoryModel.findByIdAndUpdate(
+            itemId,
+            updateData,
+            { new: true, runValidators: true } 
+        );
+
+        if (!updatedItem) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
+        return res.status(200).json({
+            message: "Item updated successfully",
+            item: updatedItem
+        });
+
+    } catch (error) {
+        console.error("Error updating item:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 const updateStock = async (req, res) => {
     const itemId = req.params.id;
     const updateData = req.params.currerntStock;
@@ -79,5 +139,8 @@ const updateStock = async (req, res) => {
 
 module.exports = {
     createItem,
+    getItems,
+    searchItems,
+    updateItem
     updateStock
 };
