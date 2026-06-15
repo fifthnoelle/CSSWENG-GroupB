@@ -136,15 +136,15 @@ function AccountManager() {
       } else {
         searchUsers(searchQuery)
           .then(setUsers)
-          .catch(err => console.error('Failed to search users:', err))
+          .catch(err => console.error('Failed to load users:', err))
           .finally(() => setIsLoading(false))
       }
     }, 300)
     return () => clearTimeout(delayDebounce)
   }, [searchQuery])
 
-  function handleRemove(userId: string) {
-    setUsers(prev => prev.filter(u => u._id !== userId))
+  function handleRemove(_id: string) {
+    setUsers(prev => prev.filter(u => u._id !== _id))
     setUserToRemove(null)
   }
 
