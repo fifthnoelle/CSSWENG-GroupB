@@ -163,9 +163,13 @@ function AccountManager() {
             <input
               type="text"
               placeholder="Search accounts..."
-
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
             />
+            {isLoading && (
+              <div className="w-4 h-4 border-2 border-[#636AE8] border-t-transparent rounded-full animate-spin" />
+            )}
           </div>
           <div className="relative shrink-0">
             <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
