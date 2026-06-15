@@ -10,20 +10,12 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
     credentials: 'include',
   })
-
+  const data = await res.json()
   if (!res.ok) {
-    let errorMessage = 'Invalid email or password'
-    try {
-      const errorBody = await res.json()
-      if (errorBody?.error) errorMessage = errorBody.error
-      else if (errorBody?.message) errorMessage = errorBody.message
-    } catch {
-      // ignore invalid JSON body
-    }
-    throw new Error(errorMessage)
+    const message = data?.message || data?.error || 'Unable to sign in. Please check your email and password.'
+    throw new Error(message)
   }
-
-  return res.json()
+  return data
 }
 
 export async function getUser() {

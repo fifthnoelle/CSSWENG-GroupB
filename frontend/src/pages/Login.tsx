@@ -4,9 +4,6 @@ import { login} from '../services/auth.service'
 import { useUser } from '../context/UserContext'
 //import type { User } from '../types'
 
-async function authenticate(email: string, password: string) {
-  return login(email, password)
-}
 
 function Login() {
   const navigate = useNavigate()
@@ -22,7 +19,7 @@ function Login() {
     setLoading(true)
 
     try {
-      const authResult = await authenticate(email, password)
+      const authResult = await login(email, password)
       await refreshUser()
       if (authResult.role === 'admin') {
         navigate('/admin/inventory')
