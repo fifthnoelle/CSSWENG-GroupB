@@ -16,6 +16,7 @@ router.use(requireAuth);
 
 // POST /inventory (Create an item)
 router.post("/", createItem);
+router.post("/update-stock/:id", updateStock);
 
 // GET /inventory (Get all items)
 router.get("/", getItems);

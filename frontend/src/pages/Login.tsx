@@ -1,7 +1,42 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { login} from '../services/auth.service'
+import { useUser } from '../context/UserContext'
+//import type { User } from '../types'
+
+async function authenticate(email: string, password: string) {
+  return login(email, password)
+}
 
 function Login() {
   const navigate = useNavigate()
+  const { refreshUser } = useUser()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleLogin = async () => {
+    setError(null)
+    setLoading(true)
+
+    try {
+      const authResult = await authenticate(email, password)
+      await refreshUser()
+      if (authResult.role === 'admin') {
+        navigate('/admin/inventory')
+      } else {
+        navigate('/inventory')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to sign in. Please check your email and password.'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex flex-col md:flex-row items-center justify-center gap-10 p-6 overflow-x-hidden">
 
@@ -38,6 +73,8 @@ function Login() {
                 name="email"
                 type="email"
                 placeholder="Enter your email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 className="flex-1 text-sm font-[Inter] text-[#bcc1ca] placeholder:text-[#bcc1ca] outline-none bg-transparent"
               />
             </div>
@@ -51,13 +88,26 @@ function Login() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 className="flex-1 text-sm font-[Inter] text-[#bcc1ca] placeholder:text-[#bcc1ca] outline-none bg-transparent"
               />
-              <img className="w-4 h-4 shrink-0" src="/assets/icon-eye-off.svg" alt="hide" />
+              <img 
+                className="w-4 h-4 shrink-0 cursor-pointer" 
+                src={showPassword ? "/assets/icon-eye.svg" : "/assets/icon-eye-off.svg"} 
+                alt={showPassword ? "show" : "hide"}
+                onClick={() => setShowPassword(!showPassword)}
+              />
             </div>
           </div>
+
+          {error && (
+            <div className="text-sm text-[#93191d] font-[Inter]">
+              {error}
+            </div>
+          )}
 
           <div className="text-right -mt-2">
             <span className="text-sm font-bold font-[Archivo] text-[#93191d] cursor-pointer">
@@ -68,10 +118,11 @@ function Login() {
           <button
             id="btn-login"
             type="button"
-            onClick={() => navigate('/admin/inventory')}
-            className="w-full h-14 bg-[#93191d] rounded-md text-white text-base font-[Inter] hover:bg-[#7a1518] transition-colors"
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full h-14 bg-[#93191d] rounded-md text-white text-base font-[Inter] hover:bg-[#7a1518] transition-colors disabled:opacity-70"
           >
-            Sign in
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </div>
       </div>

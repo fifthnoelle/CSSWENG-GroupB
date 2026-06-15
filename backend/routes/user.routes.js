@@ -9,12 +9,11 @@ const {
 } = require("../utils/auth");
 
 //Routes only
-router.get("/", userController.getHome);
+router.get("/", userController.home);
+router.get("/current-user", requireAuth, userController.getUser);
 router.post("/login", userController.login);
 router.post("/logout", userController.logout);
-//TODO: Add authentication middleware to requireAdmin when login is complete
-router.get("/user", requireAuth, userController.getUser);
-
+router.get("/load-users", requireAdmin, userController.getAllUsers);
 router.post("/register", requireAdmin, userController.register);
 
 // NEW: Delete user route, protected by requireAdmin

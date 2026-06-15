@@ -3,43 +3,43 @@ const UsersModel = require("../models/user.model");
 const { hashPassword } = require("../utils/auth");
 const bcrypt = require ("bcrypt");
 
-const getHome = (req, res) => {
-    try {
-        console.log("session email:", req.session.email);
+const plainPassword = 'admin1234';
+const saltRounds = 10;
 
-        if (req.session.email) {
-            return res.render("Home", {
-                layout: "",
-                title: "RiceNRoll Inventory | Home",
-                css: ""
-            });
-        }
+/*
+For creating bcrypt hash for testing purposes. 
+Run this code generate the hash, then copy the output 
+and use it as the password field when creating users 
+directly in the database for testing login functionality.
+bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
+    console.log("Your bcrypt hash is:", hash);
+    // Output will look similar to: $2b$10$... (copy this string)
+});
+*/
 
-        return res.render("Home", { //TODO: Change to login page when implemented
-            layout: "",
-            title: "RiceNRoll Inventory | Log In",
-            css: ""
-        });
-    } catch (error) {
-        console.error("Error in getHome:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-};
-
+/*
+    TODO: 
+    - update user details (admin only)
+    - delete user (admin only)
+*/
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and password are required" });
+        }
+
         //TODO: Authentication Implemntation
-        const user = await UsersModel.findOne({email});
+        const user = await UsersModel.findOne({ email });
 
         if (!user){ 
-            return res.status(401).json({ error: "Invalid email or password"});
+            return res.status(401).json({ error: "Invalid email"});
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch){
-            return res.status(401).json({ error: "Invalid email or password"});
+            return res.status(401).json({ error: "Invalid password"});
         }
         // Store session details (IS THIS NEEDED FOR IMPLEMENTATION YET? IF NOT JUST DELETE)
         req.session.email = user.email;
@@ -52,6 +52,10 @@ const login = async (req, res) => {
         console.error("Error in login:", error);
         res.status(500).json({ error: "Internal server error" });
     }
+};
+
+const home = (req, res) => {
+    res.status(200).json({ status: "OK", message: "RiceEnroll backend is running" });
 };
 
 const logout = async (req, res) => {
@@ -72,6 +76,10 @@ const logout = async (req, res) => {
 // getUser API to fetch currently logged-in user's details
 const getUser = async (req, res) => {
     try {
+        if (!req.session.userId) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
         // Query database using the session's userId
         // .select("-password") ensures we don't send the hashed password to the frontend
         const user = await UsersModel.findById(req.session.userId).select("-password");
@@ -83,6 +91,16 @@ const getUser = async (req, res) => {
         return res.status(200).json(user);
     } catch (error) {
         console.error("Error in getUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await UsersModel.find().select("-password");
+        return res.status(200).json(users);
+    } catch (error) {
+        console.error("Error in getAllUsers:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -160,10 +178,11 @@ const deleteUser = async (req, res) => {
 
 //Exports for routes
 module.exports = {
-    getHome,
     login,
+    home,
     register,
     logout,
     getUser,
     deleteUser 
+    getAllUsers
 };

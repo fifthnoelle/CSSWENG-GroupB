@@ -66,6 +66,7 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
         
         const auditLog = createAuditLog()
         console.log('Audit Log:', auditLog)
+        //updateUser(user._id, { email, firstName, lastName, role })
         
         //TODO: Send audit log to backend
         

@@ -119,6 +119,22 @@ const updateItem = async (req, res) => {
         console.error("Error updating item:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
+const updateStock = async (req, res) => {
+    const itemId = req.params.id;
+    const updateData = req.params.currerntStock;
+    try {        
+        const updatedItem = await InventoryModel.findByIdAndUpdate(itemId, { currentStock: updateData }, { new: true });
+        if (!updatedItem) {
+            return res.status(404).json({ error: "Item not found" });
+        }     return res.status(200).json({
+            message: "Stock updated successfully",
+            item: updatedItem
+        });
+    } catch (error) {
+        console.error("Error updating stock:", error);
+        return res.status(500).json({ error: "Error updating stock" });
+    }
+
 };
 
 module.exports = {
@@ -126,4 +142,5 @@ module.exports = {
     getItems,
     searchItems,
     updateItem
+    updateStock
 };

@@ -1,24 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
+import { getAllUsers, /*deleteUser, createUser*/ } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
   { label: 'Logs',      icon: '/assets/icon-document.svg',  path: '/logs'            },
   { label: 'Reports',   icon: '/assets/icon-chart.svg',     path: '/reports'         },
   { label: 'Accounts',  icon: '/assets/icon-account.svg',   path: '/accounts'        },
-]
-
-// Static seed data — replace with getUsers() from a user.service.ts once backend is ready
-const seedUsers: User[] = [
-  { _id: 'USR-0001', firstName: 'John',  lastName: 'Doe',        email: 'john.doe@gmail.com',         role: 'admin', createdAt: 'May 15, 2024 | 10:30 AM' },
-  { _id: 'USR-0002', firstName: 'Marie', lastName: 'Santos',     email: 'marie.santos@gmail.com',     role: 'admin', createdAt: 'May 23, 2024 | 09:15 AM' },
-  { _id: 'USR-0003', firstName: 'James', lastName: 'Reyes',      email: 'james.reyes@gmail.com',      role: 'staff', createdAt: 'May 27, 2024 | 02:45 PM' },
-  { _id: 'USR-0004', firstName: 'Ana',   lastName: 'Dela Cruz',  email: 'ana.delacruz@gmail.com',     role: 'staff', createdAt: 'May 27, 2024 | 01:15 PM' },
-  { _id: 'USR-0005', firstName: 'Mark',  lastName: 'Villanueva', email: 'mark.villanueva@gmail.com',  role: 'staff', createdAt: 'June 13, 2024 | 03:10 PM' },
-  { _id: 'USR-0006', firstName: 'Lisa',  lastName: 'Gonzales',   email: 'lisa.gonzales@gmail.com',    role: 'staff', createdAt: 'June 13, 2024 | 08:50 AM' },
 ]
 
 // Avatar background colors cycled per user
@@ -127,14 +118,22 @@ function UserCard({
 const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 function AccountManager() {
-  const [users, setUsers] = useState<User[]>(seedUsers)
+  const [users, setUsers] = useState<User[]>([])
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
+
+  useEffect(() => {
+    getAllUsers()
+      .then(setUsers)
+      .catch((err) => {
+        console.error('Failed to load users:', err)
+      })
+  }, [])
 
   function handleRemove(userId: string) {
     setUsers(prev => prev.filter(u => u._id !== userId))
     setUserToRemove(null)
-    // TODO: call DELETE /users/:id from user.service.ts
+    /*deleteUser(userId)*/
   }
 
   return (

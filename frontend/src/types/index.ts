@@ -9,6 +9,21 @@ export interface User {
   createdAt: string
 }
 
+export interface UserContextType {
+  user: User | null
+  loading: boolean
+  refreshUser: () => Promise<void>
+  clearUser: () => void
+}
+
+export interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+
+export interface AdminRouteProps {
+  children: React.ReactNode
+}
+
 // ── Inventory Collection ───────────────────────────────────
 export type StockStatus = 'in-stock' | 'low-stock' | 'out-of-stock'
 
