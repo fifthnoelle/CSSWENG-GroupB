@@ -176,6 +176,29 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({ error: "Search query is required" });
+        }
+
+        const users = await UsersModel.find({
+            $or: [
+                { firstName: { $regex: query, $options: 'i' } },
+                { lastName: { $regex: query, $options: 'i' } },
+                { email: { $regex: query, $options: 'i' } },
+                { role: { $regex: query, $options: 'i' } }
+            ]
+        }).select("-password");
+
+        return res.status(200).json(users);
+    } catch (error) {
+        console.error("Error in searchUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //Exports for routes
 module.exports = {
     login,
@@ -183,6 +206,7 @@ module.exports = {
     register,
     logout,
     getUser,
-    deleteUser 
-    getAllUsers
+    deleteUser,
+    getAllUsers,
+    searchUsers
 };

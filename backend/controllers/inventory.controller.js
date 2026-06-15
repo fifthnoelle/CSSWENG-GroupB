@@ -119,6 +119,8 @@ const updateItem = async (req, res) => {
         console.error("Error updating item:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
+};
+
 const updateStock = async (req, res) => {
     const itemId = req.params.id;
     const updateData = req.params.currerntStock;
@@ -137,10 +139,30 @@ const updateStock = async (req, res) => {
 
 };
 
+deleteItem = async (req, res) => {
+    try {
+        const itemId = req.params.id;
+        const deletedItem = await InventoryModel.findByIdAndDelete(itemId);
+
+        if (!deletedItem) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
+        return res.status(200).json({
+            message: "Item deleted successfully",
+            item: deletedItem
+        });
+    } catch (error) {
+        console.error("Error deleting item:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     createItem,
     getItems,
     searchItems,
-    updateItem
-    updateStock
+    updateItem,
+    updateStock,
+    deleteItem
 };

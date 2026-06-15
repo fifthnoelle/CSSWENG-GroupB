@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { User } from '../types'
+import { deleteUser } from '../services/user.service'
 
 interface Props {
   user: User
@@ -7,8 +8,22 @@ interface Props {
   onConfirm: (userId: string) => void
 }
 
+
 function RemoveAccountModal({ user, onClose, onConfirm }: Props) {
   const [confirmed, setConfirmed] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  
+  const handleRemoveClick = async () => {
+    try {
+      setIsDeleting(true)
+      await deleteUser(user._id)
+      onConfirm(user._id)
+    } catch (error) {
+      console.error("Failed to delete user:", error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
@@ -66,17 +81,18 @@ function RemoveAccountModal({ user, onClose, onConfirm }: Props) {
         <div className="px-6 py-4 border-t border-[#dee1e6] flex justify-end gap-3">
           <button
             onClick={onClose}
+            disabled={isDeleting}
             className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             id={`btn-remove-user-${user._id}`}
-            onClick={() => onConfirm(user._id)}
-            disabled={!confirmed}
+            onClick={handleRemoveClick}
+            disabled={!confirmed || isDeleting}
             className="h-10 px-5 bg-[#93191d] rounded-md font-[Archivo] text-sm font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-[#7a1518]"
           >
-            Remove
+            {isDeleting ? 'Removing...' : 'Remove'}
           </button>
         </div>
 

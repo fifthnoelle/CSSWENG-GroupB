@@ -3,7 +3,7 @@ import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
-import { getAllUsers, /*deleteUser, createUser*/ } from '../services/user.service'
+import { getAllUsers, searchUsers /*deleteUser, createUser*/ } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -119,22 +119,35 @@ const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 function AccountManager() {
   const [users, setUsers] = useState<User[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
 
   useEffect(() => {
-    getAllUsers()
-      .then(setUsers)
-      .catch((err) => {
-        console.error('Failed to load users:', err)
-      })
-  }, [])
+    setIsLoading(true)
+
+    const delayDebounce = setTimeout(() => {
+      if (searchQuery.trim() === '') {
+        getAllUsers()
+          .then(setUsers)
+          .catch(err => console.error('Failed to load users:', err))
+          .finally(() => setIsLoading(false))
+      } else {
+        searchUsers(searchQuery)
+          .then(setUsers)
+          .catch(err => console.error('Failed to search users:', err))
+          .finally(() => setIsLoading(false))
+      }
+    }, 300)
+    return () => clearTimeout(delayDebounce)
+  }, [searchQuery])
 
   function handleRemove(userId: string) {
     setUsers(prev => prev.filter(u => u._id !== userId))
     setUserToRemove(null)
-    /*deleteUser(userId)*/
   }
+
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -150,6 +163,7 @@ function AccountManager() {
             <input
               type="text"
               placeholder="Search accounts..."
+
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
             />
           </div>

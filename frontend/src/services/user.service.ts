@@ -34,8 +34,15 @@ export async function updateUser(userId: string, data: Partial<User>) {
 }
 */
 
-/*
-WAITING FOR BACKEND IMPLEMENTATION
+export async function searchUsers(query: string): Promise<User[]> {
+  const res = await fetch('${BASE_URL}/search-users?query=${encodeURIComponent(query)}', {
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Failed to search users')
+  return res.json()
+}
+
+
 export async function deleteUser(userId: string) {
   const res = await fetch('${BASE_URL}/delete-user/${userId}', {
     method: 'DELETE',
@@ -43,4 +50,3 @@ export async function deleteUser(userId: string) {
   })
   if (!res.ok) throw new Error('Failed to delete user')
 }
-  */
