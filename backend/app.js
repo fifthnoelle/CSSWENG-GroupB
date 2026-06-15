@@ -15,20 +15,25 @@ app.use(cors({
 
 //Session configuration
 //TODO: IMPLEMENT - Configure session store (e.g., MongoDB session store) for production
-app.use(session({
+const sessionConfig = {
     // Simple hardcoded secret for student/dev environment.
     // Change this value directly in this file for class projects.
     secret: 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: {
         secure: true,
         sameSite: 'none',
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24
-    }//TODO: Set to true when using HTTPS
-}));
+    }
+};
+
+if (process.env.MONGODB_URI) {
+    sessionConfig.store = MongoStore.create({ mongoUrl: process.env.MONGODB_URI });
+}
+
+app.use(session(sessionConfig));
 
 //Handlebars view engine
 const handlebars = require("express-handlebars");
@@ -39,10 +44,24 @@ app.engine("hbs", handlebars.engine({
 
 //Routes
 const userRoutes = require('./routes/user.routes');
-app.use('/', userRoutes);
+app.use('/api', userRoutes);
 //Inventory Route
 const inventoryRoutes = require('./routes/inventory.routes');
-app.use('/inventory', inventoryRoutes);
+app.use('/api/inventory', inventoryRoutes);
+
+// 404 handler for unknown API routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Not Found' });
+});
+
+// Global error handler returning JSON
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  const status = err.status || 500;
+  const message = err.message || 'Internal server error';
+  res.status(status).json({ message });
+});
+
 module.exports = app;
 
 
