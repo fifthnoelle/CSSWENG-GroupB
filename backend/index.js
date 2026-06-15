@@ -1,4 +1,8 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+try {
+  require('dotenv').config({ path: __dirname + '/.env' });
+} catch (err) {
+  console.warn('dotenv not installed, skipping .env load');
+}
 const app = require("./app");
 const connectDB = require("./db");
 

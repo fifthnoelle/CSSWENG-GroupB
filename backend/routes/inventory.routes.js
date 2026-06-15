@@ -5,7 +5,8 @@ const {
     createItem,
     getItems,
     searchItems,
-    updateItem
+    updateItem,
+    updateStock
 } = require("../controllers/inventory.controller");
 
 // Import the authentication middleware we made earlier
