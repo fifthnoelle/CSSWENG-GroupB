@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
 import Sidebar from '../components/Sidebar'
@@ -103,6 +104,7 @@ function InventoryCard({
 }
 
 function AdminInventory() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<InventoryItem[]>(seedItems)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
@@ -150,7 +152,7 @@ function AdminInventory() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto min-h-0">
+        <main className="flex-1 p-4 lg:p-6 pb-24 md:pb-6 overflow-y-auto min-h-0">
 
           {/* Alert banner */}
           {showAlert && lowCount > 0 && (
@@ -203,6 +205,26 @@ function AdminInventory() {
           </div>
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
+        <button onClick={() => navigate('/admin/inventory')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+          <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
+          <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Inventory</span>
+        </button>
+        <button onClick={() => navigate('/logs')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+          <img className="w-5 h-5" src="/assets/icon-document.svg" alt="logs" />
+          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Logs</span>
+        </button>
+        <button onClick={() => navigate('/reports')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+          <img className="w-5 h-5" src="/assets/icon-chart.svg" alt="reports" />
+          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Reports</span>
+        </button>
+        <button onClick={() => navigate('/accounts')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+          <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
+          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Accounts</span>
+        </button>
+      </nav>
 
       {/* Stock Update Modal */}
       {selectedItem && (

@@ -1,15 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
-import { getAllUsers, searchUsers /*deleteUser, createUser*/ } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
   { label: 'Logs',      icon: '/assets/icon-document.svg',  path: '/logs'            },
   { label: 'Reports',   icon: '/assets/icon-chart.svg',     path: '/reports'         },
   { label: 'Accounts',  icon: '/assets/icon-account.svg',   path: '/accounts'        },
+]
+
+// Static seed data — replace with getUsers() from a user.service.ts once backend is ready
+const seedUsers: User[] = [
+  { _id: 'USR-0001', firstName: 'John',  lastName: 'Doe',        email: 'john.doe@gmail.com',         role: 'admin', createdAt: 'May 15, 2024 | 10:30 AM' },
+  { _id: 'USR-0002', firstName: 'Marie', lastName: 'Santos',     email: 'marie.santos@gmail.com',     role: 'admin', createdAt: 'May 23, 2024 | 09:15 AM' },
+  { _id: 'USR-0003', firstName: 'James', lastName: 'Reyes',      email: 'james.reyes@gmail.com',      role: 'staff', createdAt: 'May 27, 2024 | 02:45 PM' },
+  { _id: 'USR-0004', firstName: 'Ana',   lastName: 'Dela Cruz',  email: 'ana.delacruz@gmail.com',     role: 'staff', createdAt: 'May 27, 2024 | 01:15 PM' },
+  { _id: 'USR-0005', firstName: 'Mark',  lastName: 'Villanueva', email: 'mark.villanueva@gmail.com',  role: 'staff', createdAt: 'June 13, 2024 | 03:10 PM' },
+  { _id: 'USR-0006', firstName: 'Lisa',  lastName: 'Gonzales',   email: 'lisa.gonzales@gmail.com',    role: 'staff', createdAt: 'June 13, 2024 | 08:50 AM' },
 ]
 
 // Avatar background colors cycled per user
@@ -118,36 +128,16 @@ function UserCard({
 const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 function AccountManager() {
-  const [users, setUsers] = useState<User[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
+  const [users, setUsers] = useState<User[]>(seedUsers)
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
-
-  useEffect(() => {
-    setIsLoading(true)
-
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.trim() === '') {
-        getAllUsers()
-          .then(setUsers)
-          .catch(err => console.error('Failed to load users:', err))
-          .finally(() => setIsLoading(false))
-      } else {
-        searchUsers(searchQuery)
-          .then(setUsers)
-          .catch(err => console.error('Failed to search users:', err))
-          .finally(() => setIsLoading(false))
-      }
-    }, 300)
-    return () => clearTimeout(delayDebounce)
-  }, [searchQuery])
 
   function handleRemove(userId: string) {
     setUsers(prev => prev.filter(u => u._id !== userId))
     setUserToRemove(null)
+    // TODO: call DELETE /users/:id from user.service.ts
   }
-
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -163,7 +153,6 @@ function AccountManager() {
             <input
               type="text"
               placeholder="Search accounts..."
-
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
             />
           </div>
@@ -214,14 +203,14 @@ function AccountManager() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
+        <button onClick={() => navigate('/admin/inventory')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
           <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
           <span className="font-[Archivo] text-[10px] text-[#565e6c]">Inventory</span>
-        </div>
-        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
+        </button>
+        <button onClick={() => navigate('/accounts')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
           <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
           <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Accounts</span>
-        </div>
+        </button>
       </nav>
 
       {/* Edit Account Modal */}
