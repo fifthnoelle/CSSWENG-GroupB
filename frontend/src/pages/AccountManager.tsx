@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
 import CreateAccountModal from '../components/CreateAccountModal'
-import { getAllUsers, searchUsers /*deleteUser, createUser*/ } from '../services/user.service'
+import { getAllUsers, searchUsers, deleteUser, createUser, register } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -253,7 +253,7 @@ function AccountManager() {
               }),
             }
             setUsers(prev => [...prev, newUser])
-            // TODO: call POST /register from auth.service.ts
+            await register(data) // TODO: call POST /register from auth.service.ts
           }}
         />
       )}
