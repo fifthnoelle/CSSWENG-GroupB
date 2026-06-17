@@ -175,6 +175,33 @@ const deleteUser = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+//updateUser function
+const updateUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { email, firstName, lastName, role } = req.body;
+
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+            userId,
+            { email, firstName, lastName, role },
+            { new: true }
+        ).select("-password");
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json({
+            message: "User updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Error in updateUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 
 const searchUsers = async (req, res) => {
     try {
