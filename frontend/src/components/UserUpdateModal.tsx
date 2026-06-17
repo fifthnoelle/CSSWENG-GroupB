@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {User, Log} from '../types'
-
+import { updateUser } from '../services/user.service'//NEW
 interface Props {
     user: User
     userId: string
@@ -67,7 +67,7 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
         const auditLog = createAuditLog()
         console.log('Audit Log:', auditLog)
         //updateUser(user._id, { email, firstName, lastName, role })
-        
+        await updateUser(user._id, { email, firstName, lastName, role }) //NEW
         //TODO: Send audit log to backend
         
         onSave(email.trim(), firstName.trim(), lastName.trim(), role)
