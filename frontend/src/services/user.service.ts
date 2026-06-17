@@ -34,6 +34,18 @@ export async function updateUser(userId: string, data: Partial<User>) {
 }
 */
 
+// Backend now implemented PATCH USED instead of PUT
+export async function updateUser(userId: string, data: { email: string, firstName: string, lastName: string, role: 'admin' | 'staff' }) {
+  const res = await fetch('${BASE_URL}/update-user/${userId}', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Failed to update user')
+  return res.json()
+}
+
 export async function searchUsers(query: string): Promise<User[]> {
   const res = await fetch('${BASE_URL}/search-users?query=${encodeURIComponent(query)}', {
     credentials: 'include',
