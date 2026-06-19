@@ -9,14 +9,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(cors({
-  origin: 'https://ricenroll-inventory.onrender.com',
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 
 //Session configuration
 //TODO: IMPLEMENT - Configure session store (e.g., MongoDB session store) for production
 const sessionConfig = {
-    secret: 'your-secret-key-change-in-production',
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
