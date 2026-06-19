@@ -1,3 +1,4 @@
+console.log('🔥 Backend function starting...');
 try {
   require('dotenv').config({ path: __dirname + '/.env' });
 } catch (e) {
