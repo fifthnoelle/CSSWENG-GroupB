@@ -27,16 +27,6 @@ const sessionConfig = {
     }
 };
 
-if (process.env.MONGODB_URI) {
-    sessionConfig.store = MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        stringify: false,
-        connectionOptions: {
-            serverSelectionTimeoutMS: 5000
-        }
-    });
-}
-
 app.use(session(sessionConfig));
 
 app.use((req, res, next) => {
