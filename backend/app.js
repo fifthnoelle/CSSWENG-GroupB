@@ -27,9 +27,11 @@ const sessionConfig = {
     }
 };
 
+const mongoose = require('mongoose');
+
 if (process.env.MONGODB_URI) {
     sessionConfig.store = MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
+        client: mongoose.connection.getClient(),
         stringify: false
     });
 }
