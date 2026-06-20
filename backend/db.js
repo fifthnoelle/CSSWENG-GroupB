@@ -8,7 +8,7 @@ if (!cached) {
 const connectDB = async () => {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const opts = { bufferCommands: false };
+    const opts = { bufferCommands: true };
     cached.promise = mongoose.connect(process.env.MONGODB_URI, opts).then((mongoose) => mongoose);
   }
   cached.conn = await cached.promise;
