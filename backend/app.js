@@ -27,12 +27,13 @@ const sessionConfig = {
     }
 };
 
-const mongoose = require('mongoose');
-
 if (process.env.MONGODB_URI) {
     sessionConfig.store = MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
-        stringify: false
+        stringify: false,
+        connectionOptions: {
+            serverSelectionTimeoutMS: 5000
+        }
     });
 }
 
