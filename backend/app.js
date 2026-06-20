@@ -28,10 +28,18 @@ const sessionConfig = {
 };
 
 if (process.env.MONGODB_URI) {
-    sessionConfig.store = MongoStore.create({ mongoUrl: process.env.MONGODB_URI });
+    sessionConfig.store = MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        stringify: false
+    });
 }
 
 app.use(session(sessionConfig));
+
+app.use((req, res, next) => {
+    console.log('SESSION ID:', req.sessionID, 'SESSION DATA:', req.session);
+    next();
+})
 
 //Handlebars view engine
 const handlebars = require("express-handlebars");
