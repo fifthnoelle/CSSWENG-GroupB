@@ -31,7 +31,7 @@ const mongoose = require('mongoose');
 
 if (process.env.MONGODB_URI) {
     sessionConfig.store = MongoStore.create({
-        client: mongoose.connection.getClient(),
+        mongoUrl: process.env.MONGODB_URI,
         stringify: false
     });
 }
