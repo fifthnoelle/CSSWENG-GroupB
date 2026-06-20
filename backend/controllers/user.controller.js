@@ -30,7 +30,6 @@ const login = async (req, res) => {
             return res.status(400).json({ error: "Email and password are required" });
         }
 
-        //TODO: Authentication Implemntation
         const user = await UsersModel.findOne({ email });
 
         if (!user){ 
@@ -41,13 +40,19 @@ const login = async (req, res) => {
         if (!passwordMatch){
             return res.status(401).json({ error: "Invalid password"});
         }
-        // Store session details (IS THIS NEEDED FOR IMPLEMENTATION YET? IF NOT JUST DELETE)
+
         req.session.email = user.email;
         req.session.role = user.role;
         req.session.userId = user._id;
 
-        return res.status(200).json({ message: "Successful login", role: user.role})
-        
+        req.session.save((err) => {
+            if (err) {
+                console.error("Session save error:", err);
+                return res.status(500).json({ error: "Failed to save session" });
+            }
+            return res.status(200).json({ message: "Successful login", role: user.role });
+        });
+
     } catch (error) {
         console.error("Error in login:", error);
         res.status(500).json({ error: "Internal server error" });
