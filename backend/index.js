@@ -8,16 +8,18 @@ try {
 const app = require("./app");
 const connectDB = require("./db");
 
-// Connect to MongoDB (default URI can be overridden by MONGODB_URI)
-connectDB();
-
 // For local development: start server if this file is run directly
 if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  connectDB().then(() => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   });
 }
 
-// Export app for Vercel serverless
-module.exports = app;
+// Export a handler that ensures DB connection before processing each request (for Vercel serverless)
+module.exports = async (req, res) => {
+  await connectDB();
+  return app(req, res);
+};
