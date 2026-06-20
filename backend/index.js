@@ -8,18 +8,13 @@ try {
 const app = require("./app");
 const connectDB = require("./db");
 
-// For local development: start server if this file is run directly
+connectDB().catch((err) => console.error('DB connection error:', err));
+
 if (require.main === module) {
-  connectDB().then(() => {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
-// Export a handler that ensures DB connection before processing each request (for Vercel serverless)
-module.exports = async (req, res) => {
-  await connectDB();
-  return app(req, res);
-};
+module.exports = app;
