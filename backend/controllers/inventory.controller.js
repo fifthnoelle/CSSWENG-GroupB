@@ -158,7 +158,7 @@ const updateStock = async (req, res) => {
     }
 };
 
-deleteItem = async (req, res) => {
+const deleteItem = async (req, res) => {
     try {
         const itemId = req.params.id;
         const deletedItem = await InventoryModel.findByIdAndDelete(itemId);
