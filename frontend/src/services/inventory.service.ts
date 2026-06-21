@@ -9,6 +9,40 @@ export async function getInventory() {
   return res.json()
 }
 
+export async function createItem(data: {
+  itemName: string
+  itemType: string
+  measurementUnit: string
+  startingStock: number
+  lowStockThreshold: number
+}) {
+  const res = await fetch(`${BASE_URL}/inventory`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Failed to create item')
+  return res.json()
+}
+
+export async function updateItem(id: string, data: {
+  itemName?: string
+  itemType?: string
+  measurementUnit?: string
+  startingStock?: number
+  lowStockThreshold?: number
+}) {
+  const res = await fetch(`${BASE_URL}/inventory/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Failed to update item')
+  return res.json()
+}
+
 export async function updateStock(id: string, actionType: 'used-today' | 'restock', quantityChanged: number) {
   const res = await fetch(`${BASE_URL}/inventory/${id}`, {
     method: 'PATCH',
