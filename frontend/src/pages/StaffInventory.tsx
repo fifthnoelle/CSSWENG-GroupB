@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
 import Sidebar from '../components/Sidebar'
@@ -71,7 +70,6 @@ function InventoryCard({ item, onAddClick }: { item: InventoryItem; onAddClick: 
 }
 
 function Inventory() {
-  const navigate = useNavigate()
   const [items, setItems] = useState<InventoryItem[]>(seedItems)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
@@ -168,10 +166,10 @@ function Inventory() {
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <button onClick={() => navigate('/inventory')} className="flex flex-col items-center gap-0.5 px-6 py-2 cursor-pointer">
+        <div className="flex flex-col items-center gap-0.5 px-6 py-2">
           <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
           <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Inventory</span>
-        </button>
+        </div>
       </nav>
 
       {/* ── Stock Update Modal ── */}

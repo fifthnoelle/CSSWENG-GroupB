@@ -1,0 +1,32 @@
+{
+  "name": "cssweng-groupb",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/fifthnoelle/CSSWENG-GroupB#readme",
+  "bugs": {
+    "url": "https://github.com/fifthnoelle/CSSWENG-GroupB/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fifthnoelle/CSSWENG-GroupB.git"
+  },
+  "license": "ISC",
+  "author": "CSSWENG grp B",
+  "type": "commonjs",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "connect-mongo": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "express-handlebars": "^9.0.1",
+    "express-session": "^1.17.3",
+    "mongodb": "^7.2.0",
+    "mongoose": "^9.6.3"
+  }
+}

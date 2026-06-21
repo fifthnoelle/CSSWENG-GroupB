@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
-import CreateAccountModal from '../components/CreateAccountModal'
-import { getAllUsers, searchUsers, deleteUser, createUser, register } from '../services/user.service'
+import { getAllUsers, searchUsers /*deleteUser, createUser*/ } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -120,13 +118,11 @@ function UserCard({
 const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 function AccountManager() {
-  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     setIsLoading(true)
@@ -140,17 +136,18 @@ function AccountManager() {
       } else {
         searchUsers(searchQuery)
           .then(setUsers)
-          .catch(err => console.error('Failed to search users:', err))
+          .catch(err => console.error('Failed to load users:', err))
           .finally(() => setIsLoading(false))
       }
     }, 300)
     return () => clearTimeout(delayDebounce)
   }, [searchQuery])
 
-  function handleRemove(userId: string) {
-    setUsers(prev => prev.filter(u => u._id !== userId))
+  function handleRemove(_id: string) {
+    setUsers(prev => prev.filter(u => u._id !== _id))
     setUserToRemove(null)
   }
+
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -170,6 +167,9 @@ function AccountManager() {
               onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
             />
+            {isLoading && (
+              <div className="w-4 h-4 border-2 border-[#636AE8] border-t-transparent rounded-full animate-spin" />
+            )}
           </div>
           <div className="relative shrink-0">
             <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
@@ -194,10 +194,7 @@ function AccountManager() {
                 <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">Filter: All</span>
                 <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto cursor-pointer"
-              >
+              <button className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto">
                 <img className="w-4 h-4" src="/assets/icon-plus.svg" alt="plus" />
                 <span className="font-[Archivo] text-sm font-medium text-white whitespace-nowrap">Create Account</span>
               </button>
@@ -205,58 +202,31 @@ function AccountManager() {
           </div>
 
           {/* User cards grid */}
-          {isLoading ? (
-            <p className="font-[Archivo] text-sm text-[#9095a0] text-center mt-10">Loading...</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {users.map((user, i) => (
-                <UserCard
-                  key={user._id}
-                  user={user}
-                  colorIndex={i}
-                  onEditClick={() => setUserToEdit(user)}
-                  onRemoveClick={() => setUserToRemove(user)}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {users.map((user, i) => (
+              <UserCard
+                key={user._id}
+                user={user}
+                colorIndex={i}
+                onEditClick={() => setUserToEdit(user)}
+                onRemoveClick={() => setUserToRemove(user)}
+              />
+            ))}
+          </div>
         </main>
       </div>
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <button onClick={() => navigate('/admin/inventory')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
           <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
           <span className="font-[Archivo] text-[10px] text-[#565e6c]">Inventory</span>
-        </button>
-        <button onClick={() => navigate('/accounts')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
+        </div>
+        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
           <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
           <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Accounts</span>
-        </button>
+        </div>
       </nav>
-
-      {/* Create Account Modal */}
-      {showCreateModal && (
-        <CreateAccountModal
-          onClose={() => setShowCreateModal(false)}
-          onSave={(data) => {
-            const newUser: User = {
-              _id: data.userId,
-              firstName: data.firstName,
-              middleName: data.middleName,
-              lastName: data.lastName,
-              email: data.email,
-              role: data.role,
-              createdAt: new Date().toLocaleString('en-US', {
-                month: 'long', day: 'numeric', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-              }),
-            }
-            setUsers(prev => [...prev, newUser])
-            await register(data) // TODO: call POST /register from auth.service.ts
-          }}
-        />
-      )}
 
       {/* Edit Account Modal */}
       {userToEdit && (

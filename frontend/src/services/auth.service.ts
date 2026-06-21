@@ -1,7 +1,7 @@
 // Auth service — all API calls for authentication
 // Replace BASE_URL with the actual backend URL once connected
 
-export const BASE_URL = 'https://ricenroll-web-service.onrender.com'
+export const BASE_URL = '/api'
 
 export async function login(email: string, password: string) {
   const res = await fetch(`${BASE_URL}/login`, {

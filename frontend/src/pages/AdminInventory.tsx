@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
+import ItemFormModal from '../components/ItemFormModal'
 import Sidebar from '../components/Sidebar'
+import { getInventory, createItem, updateItem, updateStock as updateStockApi, deleteItem as deleteItemApi } from '../services/inventory.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -12,21 +13,6 @@ const adminNavItems = [
 ]
 
 const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
-
-// Static seed data — replace with getInventory() from inventory.service.ts
-const seedItems: InventoryItem[] = [
-  { _id: '1',  itemName: 'Wooden Toothpicks', itemType: 'Packaging',  measurementUnit: 'PACKS',   startingStock: 50,   currentStock: 44,  lowStockThreshold: 10,  createdBy: '', createdAt: '' },
-  { _id: '2',  itemName: 'Tupperwares',        itemType: 'Packaging',  measurementUnit: 'PCS',     startingStock: 200,  currentStock: 53,  lowStockThreshold: 60,  createdBy: '', createdAt: '' },
-  { _id: '3',  itemName: 'Bottle Sauces',      itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 100,  currentStock: 0,   lowStockThreshold: 10,  createdBy: '', createdAt: '' },
-  { _id: '4',  itemName: 'Burger Boxes',       itemType: 'Packaging',  measurementUnit: 'PCS',     startingStock: 500,  currentStock: 320, lowStockThreshold: 50,  createdBy: '', createdAt: '' },
-  { _id: '5',  itemName: 'Napkins',            itemType: 'Packaging',  measurementUnit: 'PACKS',   startingStock: 50,   currentStock: 20,  lowStockThreshold: 25,  createdBy: '', createdAt: '' },
-  { _id: '6',  itemName: 'Soy Sauce',          itemType: 'Condiment',  measurementUnit: 'GALLONS', startingStock: 10,   currentStock: 8,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '7',  itemName: 'Chopsticks',         itemType: 'Utensil',    measurementUnit: 'PCS',     startingStock: 1000, currentStock: 0,   lowStockThreshold: 100, createdBy: '', createdAt: '' },
-  { _id: '8',  itemName: 'Chicken',            itemType: 'Ingredient', measurementUnit: 'KGS',     startingStock: 15,   currentStock: 10,  lowStockThreshold: 3,   createdBy: '', createdAt: '' },
-  { _id: '9',  itemName: 'Orange Sauce',       itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 10,   currentStock: 7,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '10', itemName: 'Buffalo Sauce',      itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 7,    currentStock: 5,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '11', itemName: 'Barbeque Sauce',     itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 5,    currentStock: 4,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-]
 
 const statusConfig: Record<StockStatus, { label: string; bg: string; border: string; text: string }> = {
   'in-stock':     { label: 'IN STOCK',     bg: 'bg-[#D1FAE5]', border: 'border-[#A7F3D0]', text: 'text-[#047857]' },
@@ -44,10 +30,12 @@ function InventoryCard({
   item,
   onAddClick,
   onEditClick,
+  onDeleteClick,
 }: {
   item: InventoryItem
   onAddClick: () => void
   onEditClick: () => void
+  onDeleteClick: () => void
 }) {
   const s = statusConfig[getStatus(item)]
   return (
@@ -93,8 +81,8 @@ function InventoryCard({
         <div className="w-px h-5 bg-[#dee1e6]" />
         <button
           id={`btn-delete-${item._id}`}
-          disabled
-          className="flex-1 flex justify-center p-1.5 rounded-md cursor-not-allowed"
+          onClick={onDeleteClick}
+          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100"
         >
           <img className="w-4 h-4" src="/assets/icon-trash.svg" alt="delete" />
         </button>
@@ -104,25 +92,92 @@ function InventoryCard({
 }
 
 function AdminInventory() {
-  const navigate = useNavigate()
-  const [items, setItems] = useState<InventoryItem[]>(seedItems)
+  const [items, setItems] = useState<InventoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
-  function handleSave(actionType: ActionType, quantityChanged: number) {
-    if (!selectedItem) return
-    setItems(prev => prev.map(i => {
-      if (i._id !== selectedItem._id) return i
-      const newStock = actionType === 'used-today'
-        ? i.currentStock - quantityChanged
-        : i.currentStock + quantityChanged
-      return { ...i, currentStock: Math.max(0, newStock) }
-    }))
-    // TODO: call updateStock(selectedItem._id, actionType, quantityChanged) from inventory.service.ts
+  async function loadItems() {
+    setLoading(true)
+    setLoadError('')
+    try {
+      const data = await getInventory()
+      setItems(data)
+    } catch (err) {
+      console.error('Failed to load inventory:', err)
+      setLoadError('Failed to load inventory. Please try refreshing.')
+    } finally {
+      setLoading(false)
+    }
   }
 
+  useEffect(() => {
+    loadItems()
+  }, [])
+
+  async function handleStockSave(actionType: ActionType, quantityChanged: number) {
+    if (!selectedItem) return
+    try {
+      const result = await updateStockApi(selectedItem._id, actionType as 'used-today' | 'restock', quantityChanged)
+      setItems(prev => prev.map(i => (i._id === selectedItem._id ? result.item : i)))
+    } catch (err) {
+      console.error('Failed to update stock:', err)
+      alert('Failed to update stock. Please try again.')
+    }
+  }
+
+  async function handleAddSave(data: {
+    itemName: string
+    itemType: string
+    measurementUnit: string
+    startingStock: number
+    lowStockThreshold: number
+  }) {
+    try {
+      const result = await createItem(data)
+      setItems(prev => [...prev, result.item])
+      setShowAddModal(false)
+    } catch (err) {
+      console.error('Failed to create item:', err)
+      alert('Failed to create item. Please try again.')
+    }
+  }
+
+  async function handleEditSave(data: {
+    itemName: string
+    itemType: string
+    measurementUnit: string
+    startingStock: number
+    lowStockThreshold: number
+  }) {
+    if (!editingItem) return
+    try {
+      const result = await updateItem(editingItem._id, data)
+      setItems(prev => prev.map(i => (i._id === editingItem._id ? result.item : i)))
+      setEditingItem(null)
+    } catch (err) {
+      console.error('Failed to update item:', err)
+      alert('Failed to update item. Please try again.')
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingItem) return
+    try {
+      await deleteItemApi(deletingItem._id)
+      setItems(prev => prev.filter(i => i._id !== deletingItem._id))
+      setDeletingItem(null)
+    } catch (err) {
+      console.error('Failed to delete item:', err)
+      alert('Failed to delete item. Please try again.')
+    }
+  }
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -152,7 +207,7 @@ function AdminInventory() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 md:pb-6 overflow-y-auto min-h-0">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto min-h-0">
 
           {/* Alert banner */}
           {showAlert && lowCount > 0 && (
@@ -185,54 +240,91 @@ function AdminInventory() {
                 <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
               {/* Add Ingredient — admin only */}
-              <button className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto"
+              >
                 <img className="w-4 h-4" src="/assets/icon-plus.svg" alt="plus" />
                 <span className="font-[Archivo] text-sm font-medium text-white whitespace-nowrap">Add Ingredient</span>
               </button>
             </div>
           </div>
 
+          {/* Loading / error states */}
+          {loading && (
+            <p className="font-[Archivo] text-sm text-[#565e6c]">Loading inventory...</p>
+          )}
+          {!loading && loadError && (
+            <p className="font-[Archivo] text-sm text-[#BE123C]">{loadError}</p>
+          )}
+
           {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {items.map(item => (
-              <InventoryCard
-                key={item._id}
-                item={item}
-                onAddClick={() => setSelectedItem(item)}
-                onEditClick={() => { /* TODO: open edit ingredient modal */ }}
-              />
-            ))}
-          </div>
+          {!loading && !loadError && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {items.map(item => (
+                <InventoryCard
+                  key={item._id}
+                  item={item}
+                  onAddClick={() => setSelectedItem(item)}
+                  onEditClick={() => setEditingItem(item)}
+                  onDeleteClick={() => setDeletingItem(item)}
+                />
+              ))}
+            </div>
+          )}
         </main>
       </div>
-
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <button onClick={() => navigate('/admin/inventory')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
-          <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
-          <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Inventory</span>
-        </button>
-        <button onClick={() => navigate('/logs')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
-          <img className="w-5 h-5" src="/assets/icon-document.svg" alt="logs" />
-          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Logs</span>
-        </button>
-        <button onClick={() => navigate('/reports')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
-          <img className="w-5 h-5" src="/assets/icon-chart.svg" alt="reports" />
-          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Reports</span>
-        </button>
-        <button onClick={() => navigate('/accounts')} className="flex flex-col items-center gap-0.5 px-4 py-2 cursor-pointer">
-          <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
-          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Accounts</span>
-        </button>
-      </nav>
 
       {/* Stock Update Modal */}
       {selectedItem && (
         <StockUpdateModal
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onSave={handleSave}
+          onSave={handleStockSave}
         />
+      )}
+
+      {/* Add Ingredient Modal */}
+      {showAddModal && (
+        <ItemFormModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddSave}
+        />
+      )}
+
+      {/* Edit Ingredient Modal */}
+      {editingItem && (
+        <ItemFormModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSave={handleEditSave}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-[400px] mx-6 bg-white rounded-xl shadow-lg p-5">
+            <p className="font-[Archivo] text-lg font-semibold text-[#171a1f] mb-2">Delete Ingredient</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] mb-5">
+              Are you sure you want to delete <span className="font-semibold text-[#171a1f]">{deletingItem.itemName}</span>? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeletingItem(null)}
+                className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="h-10 px-5 bg-[#BE123C] rounded-md font-[Archivo] text-sm font-medium text-white shadow-sm hover:bg-[#9f0f33] transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
