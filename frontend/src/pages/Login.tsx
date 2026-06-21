@@ -43,7 +43,7 @@ function Login() {
       {/* Branding */}
       <div className="flex flex-col items-center md:items-start gap-4 w-full md:w-auto">
         <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden">
-          <img src="/assets/logo.png" className="w-full h-full object-cover" alt="Rice N Roll logo" />
+          <img src="/assets/logo.jpg" className="w-full h-full object-cover" alt="Rice N Roll logo" />
         </div>
         <div className="text-center md:text-left">
           <h1 className="text-[#93191d] font-[Archivo] text-[clamp(1.75rem,9vw,5rem)] font-bold leading-tight">
