@@ -37,7 +37,7 @@ function Sidebar({ user, navItems }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 lg:px-5 h-16 shrink-0">
         <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
-          <img src="/assets/logo.png" className="w-full h-full object-cover" alt="logo" />
+          <img src="/assets/logo.jpg" className="w-full h-full object-cover" alt="logo" />
         </div>
         <div className="hidden lg:block overflow-hidden">
           <p className="font-[Archivo] text-[#93191d] text-lg font-bold leading-tight truncate">Rice 'N' Roll</p>
