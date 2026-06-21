@@ -6,27 +6,30 @@ const {
     getItems,
     searchItems,
     updateItem,
-    updateStock
+    updateStock,
+    deleteItem
 } = require("../controllers/inventory.controller");
 
-// Import the authentication middleware we made earlier
 const { requireAuth } = require("../utils/auth");
 
-// Apply requireAuth to ALL inventory routes automatically
-router.use(requireAuth); 
+router.use(requireAuth);
 
 // POST /inventory (Create an item)
 router.post("/", createItem);
-router.post("/update-stock/:id", updateStock);
 
 // GET /inventory (Get all items)
 router.get("/", getItems);
 
 // GET /inventory/search?query=xyz (Search items)
-// Note: Put this ABOVE the /:id route, otherwise Express might think "search" is an ID!
 router.get("/search", searchItems);
 
-// PUT /inventory/:id (Edit an item)
+// PATCH /inventory/:id (Update stock — matches frontend's inventory_service.ts)
+router.patch("/:id", updateStock);
+
+// PUT /inventory/:id (Edit item details)
 router.put("/:id", updateItem);
+
+// DELETE /inventory/:id (Delete item)
+router.delete("/:id", deleteItem);
 
 module.exports = router;
