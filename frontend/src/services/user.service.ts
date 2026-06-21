@@ -1,8 +1,8 @@
 import type { User } from '../types'
-//import { BASE_URL } from './auth.service'
+import { BASE_URL } from './auth.service'
 
 export async function getAllUsers(): Promise<User[]> {
-  const res = await fetch('${BASE_URL}/load-users', {
+  const res = await fetch(`${BASE_URL}/load-users`, {
     credentials: 'include',
   })
   if (!res.ok) throw new Error('Failed to fetch users')
@@ -11,7 +11,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 
 export async function createUser(data: { email: string, firstName: string, lastName: string, password: string, role: 'admin' | 'staff' }) {
-    const res = await fetch('${BASE_URL}/register', {
+    const res = await fetch(`${BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -24,7 +24,7 @@ export async function createUser(data: { email: string, firstName: string, lastN
 /*
 WAITING FOR BACKEND IMPLEMENTATION
 export async function updateUser(_id: string, data: Partial<User>) {
-  const res = await fetch('${BASE_URL}/update-user/${_id}', {
+  const res = await fetch(`${BASE_URL}/update-user/${_id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -34,8 +34,8 @@ export async function updateUser(_id: string, data: Partial<User>) {
 }
 */
 
-export async function searchUsers(_query: string): Promise<User[]> {
-  const res = await fetch('${BASE_URL}/search-users?query=${encodeURIComponent(query)}', {
+export async function searchUsers(query: string): Promise<User[]> {
+  const res = await fetch(`${BASE_URL}/search-users?query=${encodeURIComponent(query)}`, {
     credentials: 'include',
   })
   if (!res.ok) throw new Error('Failed to search users')
@@ -44,7 +44,7 @@ export async function searchUsers(_query: string): Promise<User[]> {
 
 
 export async function deleteUser(_id: string) {
-  const res = await fetch('${BASE_URL}/delete-user/${_id}', {
+  const res = await fetch(`${BASE_URL}/delete-user/${_id}`, {
     method: 'DELETE',
     credentials: 'include',
   })
