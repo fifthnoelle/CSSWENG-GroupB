@@ -19,5 +19,7 @@ router.patch("/update-user/:id", requireAdmin, userController.updateUser);
 // NEW: Delete user route, protected by requireAdmin
 // The ":id" allows us to pass the specific user's database ID in the URL
 router.delete("/delete-user/:id", requireAdmin, userController.deleteUser);
+//NEW: Update user route, reqAdmin
+router.patch("/update-user/:id", requireAdmin, userController.updateUser); 
 
 module.exports = router;
