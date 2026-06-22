@@ -153,6 +153,50 @@ const register = async (req, res) => {
     }
 };
 
+//ADMIN ONLY
+//Update an existing user's details. Password is optional — only updated if provided.
+const updateUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { email, firstName, lastName, role, password } = req.body;
+
+        if (!email || !firstName || !lastName) {
+            return res.status(400).json({ error: "Email, first name, and last name are required" });
+        }
+
+        // Check if another user already has this email
+        const existingUser = await UsersModel.findOne({ email, _id: { $ne: userId } });
+        if (existingUser) {
+            return res.status(409).json({ error: "Another user already has this email" });
+        }
+
+        const updateFields = { email, firstName, lastName, role: role || 'staff' };
+
+        if (password && password.trim() !== '') {
+            updateFields.password = await hashPassword(password);
+        }
+
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+            userId,
+            updateFields,
+            { new: true }
+        ).select("-password");
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json({
+            message: "User updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Error in updateUser:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 // NEW: deleteUser API to remove a user from the database
 const deleteUser = async (req, res) => {
     try {
@@ -213,5 +257,6 @@ module.exports = {
     getUser,
     deleteUser,
     getAllUsers,
-    searchUsers
+    searchUsers,
+    updateUser
 };
