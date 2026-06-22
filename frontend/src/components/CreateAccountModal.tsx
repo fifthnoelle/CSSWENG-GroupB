@@ -8,6 +8,7 @@ interface Props {
     lastName: string
     email: string
     userId: string
+    password: string
     role: 'admin' | 'staff'
   }) => void
 }
@@ -18,16 +19,18 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [lastName, setLastName]     = useState('')
   const [email, setEmail]           = useState('')
   const [userId, setUserId]         = useState('')
+  const [password, setPassword]     = useState('')
   const [role, setRole]             = useState<'admin' | 'staff'>('staff')
 
   function handleCreate() {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim()) return
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() || !password.trim()) return
     onSave({
       firstName: firstName.trim(),
       middleName: middleName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
       userId: userId.trim(),
+      password: password.trim(),
       role,
     })
     onClose()
@@ -112,6 +115,20 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             />
           </div>
 
+          {/* Password */}
+          <div>
+            <label className={labelClass}>Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className={inputClass}
+            />
+          </div>
+
           {/* User ID + Role */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -159,7 +176,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim()}
+            disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() || !password.trim()}
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             Create
