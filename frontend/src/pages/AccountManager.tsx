@@ -3,7 +3,8 @@ import type { User } from '../types'
 import Sidebar from '../components/Sidebar'
 import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
-import { getAllUsers, searchUsers /*deleteUser, createUser*/ } from '../services/user.service'
+import CreateAccountModal from '../components/CreateAccountModal'
+import { getAllUsers, searchUsers, deleteUser, createUser, updateUser } from '../services/user.service'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -123,6 +124,7 @@ function AccountManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     setIsLoading(true)
@@ -143,11 +145,54 @@ function AccountManager() {
     return () => clearTimeout(delayDebounce)
   }, [searchQuery])
 
-  function handleRemove(_id: string) {
-    setUsers(prev => prev.filter(u => u._id !== _id))
-    setUserToRemove(null)
+  async function handleRemove(_id: string) {
+    try {
+      await deleteUser(_id)
+      setUsers(prev => prev.filter(u => u._id !== _id))
+      setUserToRemove(null)
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+      alert('Failed to delete user. Please try again.')
+    }
   }
 
+  async function handleCreate(data: {
+    firstName: string
+    middleName: string
+    lastName: string
+    email: string
+    userId: string
+    password: string
+    role: 'admin' | 'staff'
+  }) {
+    try {
+      await createUser({
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        password: data.password,
+        role: data.role,
+      })
+      // Refresh the list from the backend so we get the real _id and createdAt
+      const refreshed = await getAllUsers()
+      setUsers(refreshed)
+    } catch (err) {
+      console.error('Failed to create user:', err)
+      alert('Failed to create user. The email may already be in use.')
+    }
+  }
+
+  async function handleEdit(email: string, firstName: string, lastName: string, role: 'admin' | 'staff') {
+    if (!userToEdit) return
+    try {
+      const result = await updateUser(userToEdit._id, { email, firstName, lastName, role })
+      setUsers(prev => prev.map(u => (u._id === userToEdit._id ? result.user : u)))
+      setUserToEdit(null)
+    } catch (err) {
+      console.error('Failed to update user:', err)
+      alert('Failed to update user. The email may already be in use.')
+    }
+  }
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
@@ -194,7 +239,10 @@ function AccountManager() {
                 <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">Filter: All</span>
                 <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
-              <button className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 h-10 bg-[#636AE8] rounded-md shadow-sm hover:bg-[#4f56d4] transition-colors ml-auto"
+              >
                 <img className="w-4 h-4" src="/assets/icon-plus.svg" alt="plus" />
                 <span className="font-[Archivo] text-sm font-medium text-white whitespace-nowrap">Create Account</span>
               </button>
@@ -228,21 +276,21 @@ function AccountManager() {
         </div>
       </nav>
 
+      {/* Create Account Modal */}
+      {showCreateModal && (
+        <CreateAccountModal
+          onClose={() => setShowCreateModal(false)}
+          onSave={handleCreate}
+        />
+      )}
+
       {/* Edit Account Modal */}
       {userToEdit && (
         <UserUpdateModal
           user={userToEdit}
           userId={adminUser.firstName[0] + adminUser.lastName[0]}
           onClose={() => setUserToEdit(null)}
-          onSave={(email, firstName, lastName, role) => {
-            setUsers(prev => prev.map(u =>
-              u._id === userToEdit._id
-                ? { ...u, email, firstName, lastName, role }
-                : u
-            ))
-            setUserToEdit(null)
-            // TODO: call PATCH /users/:id from user.service.ts
-          }}
+          onSave={handleEdit}
         />
       )}
 
