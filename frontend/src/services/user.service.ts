@@ -21,6 +21,16 @@ export async function createUser(data: { email: string, firstName: string, lastN
     return res.json()
 }
 
+export async function updateUser(_id: string, data: { email: string, firstName: string, lastName: string, role: 'admin' | 'staff', password?: string }) {
+  const res = await fetch(`${BASE_URL}/update-user/${_id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Failed to update user')
+  return res.json()
+}
 /*
 WAITING FOR BACKEND IMPLEMENTATION
 export async function updateUser(_id: string, data: Partial<User>) {
