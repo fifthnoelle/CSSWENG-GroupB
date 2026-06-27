@@ -6,6 +6,8 @@ const Users = new mongoose.Schema({
   lastName: { type: String },
   password: { type: String },
   role: { type: String, enum: ['admin', 'staff'], default: 'staff' },
+  failedLoginAttempts: { type: Number, default: 0 },
+  lockedUntil: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 }, { versionKey: false });
 
