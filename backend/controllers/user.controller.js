@@ -1,24 +1,14 @@
 //ALL USER RELATED CONTROLLER FUNCTIONS
 const UsersModel = require("../models/user.model");
 const { hashPassword } = require("../utils/auth");
-const bcrypt = require ("bcrypt");
+const { createLog } = require("./logs.controller");
+const bcrypt = require("bcrypt");
 
-const plainPassword = 'admin1234';
-const saltRounds = 10;
-
-/*
-For creating bcrypt hash for testing purposes. 
-Run this code generate the hash, then copy the output 
-and use it as the password field when creating users 
-directly in the database for testing login functionality.
-bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
-    console.log("Your bcrypt hash is:", hash);
-    // Output will look similar to: $2b$10$... (copy this string)
-});
-*/
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 1000 * 60 * 15; // 15 minute lockout, adjust as needed
 
 /*
-    TODO: 
+    TODO:
     - update user details (admin only)
     - delete user (admin only)
 */
@@ -32,13 +22,64 @@ const login = async (req, res) => {
 
         const user = await UsersModel.findOne({ email });
 
-        if (!user){ 
-            return res.status(401).json({ error: "Invalid email"});
+        if (!user) {
+            return res.status(401).json({ error: "Invalid email" });
+        }
+
+        // US-B1 AC: lock the account after 5+ failed attempts in a row.
+        // EC6/EC7-adjacent: lockout is time-based here rather than requiring
+        // a key code from the Ops Manager, since that flow is still listed
+        // as optional/Phase 4 in the dev planning doc.
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+            return res.status(403).json({
+                error: "Account locked due to too many failed login attempts. Please contact your administrator or try again later.",
+                lockedUntil: user.lockedUntil
+            });
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch){
-            return res.status(401).json({ error: "Invalid password"});
+
+        if (!passwordMatch) {
+            user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+
+            let lockedOut = false;
+            if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+                user.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+                lockedOut = true;
+
+                await createLog({
+                    req: { session: { userId: user._id, email: user.email } },
+                    logType: 'accounts',
+                    actionType: 'account-locked',
+                    userTarget: user._id.toString(),
+                    userTargetName: `${user.firstName} ${user.lastName}`,
+                    notes: `Account locked after ${user.failedLoginAttempts} failed login attempts`
+                });
+            }
+
+            await user.save();
+
+            if (lockedOut) {
+                return res.status(403).json({
+                    error: "Too many failed attempts. Your account has been locked. Please contact your administrator.",
+                    lockedUntil: user.lockedUntil
+                });
+            }
+
+            // Offer an escape hatch after 2-3 failed attempts, per client request
+            const attemptsLeft = MAX_FAILED_ATTEMPTS - user.failedLoginAttempts;
+            return res.status(401).json({
+                error: "Invalid password",
+                attemptsLeft,
+                showContactHigherUps: user.failedLoginAttempts >= 2
+            });
+        }
+
+        // Successful login — reset the failed-attempt counter
+        if (user.failedLoginAttempts || user.lockedUntil) {
+            user.failedLoginAttempts = 0;
+            user.lockedUntil = null;
+            await user.save();
         }
 
         req.session.email = user.email;
@@ -85,10 +126,8 @@ const getUser = async (req, res) => {
             return res.status(401).json({ error: "Not authenticated" });
         }
 
-        // Query database using the session's userId
-        // .select("-password") ensures we don't send the hashed password to the frontend
         const user = await UsersModel.findById(req.session.userId).select("-password");
-        
+
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
@@ -110,43 +149,50 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-//ADMIN ONLY 
+//ADMIN ONLY
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
     try {
-        //Validate required fields
         const { email, firstName, lastName, password, role } = req.body;
-        
+
         if (!email || !firstName || !lastName || !password) {
             return res.status(400).json({ error: "All fields are required" });
         }
-        
-        //TODO: Check if user already exists
-        const existingUser = await UsersModel.findOne({email});
-        if (existingUser)
-        {
+
+        const existingUser = await UsersModel.findOne({ email });
+        if (existingUser) {
             return res.status(409).json({ error: "User already exists with the same email" });
         }
-        
-        //Password hashing
+
         const hashedPassword = await hashPassword(password);
-        
+
         const newUser = new UsersModel({
             email,
             firstName,
             lastName,
-            password: hashedPassword, //TODO: hashedPassword
+            password: hashedPassword,
             role: role || 'staff'
         });
-    
+
         await newUser.save();
         console.log("User created successfully:", email);
-        res.status(201).json({ 
+
+        // Audit log — account creation (US-B6)
+        await createLog({
+            req,
+            logType: 'accounts',
+            actionType: 'create-user',
+            userTarget: newUser._id.toString(),
+            userTargetName: `${newUser.firstName} ${newUser.lastName}`,
+            notes: `Created account with role: ${newUser.role}`
+        });
+
+        res.status(201).json({
             message: "User created successfully",
             id: newUser._id,
             email: newUser.email
         });
-        
+
     } catch (error) {
         console.error("Error saving user:", error);
         res.status(500).json({ error: "Error creating user" });
@@ -164,10 +210,22 @@ const updateUser = async (req, res) => {
             return res.status(400).json({ error: "Email, first name, and last name are required" });
         }
 
-        // Check if another user already has this email
         const existingUser = await UsersModel.findOne({ email, _id: { $ne: userId } });
         if (existingUser) {
             return res.status(409).json({ error: "Another user already has this email" });
+        }
+
+        const targetBeforeUpdate = await UsersModel.findById(userId);
+        if (!targetBeforeUpdate) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // EC55 — system must always retain at least one Admin
+        if (targetBeforeUpdate.role === 'admin' && role === 'staff') {
+            const adminCount = await UsersModel.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: "Cannot demote the last remaining Admin account." });
+            }
         }
 
         const updateFields = { email, firstName, lastName, role: role || 'staff' };
@@ -186,6 +244,19 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
+        // Audit log — distinguish a role change from a general profile edit
+        const roleChanged = targetBeforeUpdate.role !== updatedUser.role;
+        await createLog({
+            req,
+            logType: 'accounts',
+            actionType: roleChanged ? 'edit-role' : 'edit-user',
+            userTarget: updatedUser._id.toString(),
+            userTargetName: `${updatedUser.firstName} ${updatedUser.lastName}`,
+            notes: roleChanged
+                ? `Role changed: ${targetBeforeUpdate.role} -> ${updatedUser.role}`
+                : 'Account details updated'
+        });
+
         return res.status(200).json({
             message: "User updated successfully",
             user: updatedUser
@@ -197,26 +268,44 @@ const updateUser = async (req, res) => {
     }
 };
 
-// NEW: deleteUser API to remove a user from the database
+// deleteUser API to remove a user from the database
 const deleteUser = async (req, res) => {
     try {
         const userId = req.params.id;
 
-        // Optional safety check: Prevent the admin from deleting their own account while logged in
+        // Prevent the admin from deleting their own account while logged in
         if (req.session.userId === userId) {
             return res.status(400).json({ error: "You cannot delete your own active session account." });
         }
 
-        // Find the user by ID and delete them
-        const deletedUser = await UsersModel.findByIdAndDelete(userId);
-
-        if (!deletedUser) {
+        const targetUser = await UsersModel.findById(userId);
+        if (!targetUser) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        return res.status(200).json({ 
-            message: "User deleted successfully", 
-            id: deletedUser._id 
+        // EC55 — system must always retain at least one Admin
+        if (targetUser.role === 'admin') {
+            const adminCount = await UsersModel.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: "Cannot delete the last remaining Admin account." });
+            }
+        }
+
+        const deletedUser = await UsersModel.findByIdAndDelete(userId);
+
+        // Audit log — account deletion
+        await createLog({
+            req,
+            logType: 'accounts',
+            actionType: 'delete-user',
+            userTarget: deletedUser._id.toString(),
+            userTargetName: `${deletedUser.firstName} ${deletedUser.lastName}`,
+            notes: `Deleted account with role: ${deletedUser.role}`
+        });
+
+        return res.status(200).json({
+            message: "User deleted successfully",
+            id: deletedUser._id
         });
 
     } catch (error) {
