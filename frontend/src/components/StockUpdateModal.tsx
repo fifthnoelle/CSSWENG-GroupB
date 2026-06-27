@@ -12,14 +12,17 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
   const [quantity, setQuantity] = useState('0')
 
   const isDeduct = activeTab === 'used-today'
+  const qtyNum = Number(quantity || 0)
   const projected = isDeduct
-    ? item.currentStock - Number(quantity || 0)
-    : item.currentStock + Number(quantity || 0)
+    ? item.currentStock - qtyNum
+    : item.currentStock + qtyNum
+
+  const exceedsStock = isDeduct && qtyNum > item.currentStock
+  const isInvalid = !qtyNum || qtyNum <= 0 || exceedsStock
 
   function handleSave() {
-    const qty = Number(quantity)
-    if (!qty || qty <= 0) return
-    onSave(activeTab, qty)
+    if (isInvalid) return
+    onSave(activeTab, qtyNum)
     onClose()
   }
 
@@ -77,7 +80,9 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
                 Current: {item.currentStock} {item.measurementUnit}
               </span>
             </div>
-            <div className="flex items-center border border-[#dee1e6] rounded-md overflow-hidden h-11">
+            <div className={`flex items-center border rounded-md overflow-hidden h-11 ${
+              exceedsStock ? 'border-red-400' : 'border-[#dee1e6]'
+            }`}>
               <input
                 id="quantity"
                 name="quantityChanged"
@@ -86,23 +91,35 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
                 onChange={e => setQuantity(e.target.value)}
                 className="flex-1 px-3 h-full text-sm font-[Archivo] text-[#171a1f] outline-none bg-white"
                 min={0}
+                max={isDeduct ? item.currentStock : undefined}
               />
               <div className="h-full flex items-center px-3 border-l border-[#dee1e6] text-sm text-[#565e6c] font-[Archivo] bg-white shrink-0">
                 {item.measurementUnit}
               </div>
             </div>
+            {exceedsStock && (
+              <p className="text-xs text-red-500 font-[Archivo] mt-1.5">
+                Cannot deduct more than current stock ({item.currentStock} {item.measurementUnit}).
+              </p>
+            )}
           </div>
 
           {/* Projected stock */}
-          <div className="bg-[#f2f2fd] border border-[#636AE8]/10 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className={`border rounded-xl p-4 flex items-center justify-between gap-4 ${
+            exceedsStock ? 'bg-red-50 border-red-200' : 'bg-[#f2f2fd] border-[#636AE8]/10'
+          }`}>
             <div>
-              <p className="font-[Archivo] text-xs font-bold text-[#636AE8] uppercase tracking-wide">
+              <p className={`font-[Archivo] text-xs font-bold uppercase tracking-wide ${
+                exceedsStock ? 'text-red-500' : 'text-[#636AE8]'
+              }`}>
                 Projected Stock Level
               </p>
               <p className="font-[Archivo] text-sm text-[#19191F] mt-1">After this update</p>
             </div>
-            <p className="font-[Archivo] font-black text-2xl text-[#636AE8] whitespace-nowrap shrink-0">
-              {projected} <span className="text-sm font-medium">{item.measurementUnit}</span>
+            <p className={`font-[Archivo] font-black text-2xl whitespace-nowrap shrink-0 ${
+              exceedsStock ? 'text-red-500' : 'text-[#636AE8]'
+            }`}>
+              {Math.max(projected, 0)} <span className="text-sm font-medium">{item.measurementUnit}</span>
             </p>
           </div>
         </div>
@@ -117,7 +134,8 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleSave}
-            className="h-10 px-5 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-medium text-white shadow-sm hover:bg-[#4f56d4] transition-colors"
+            disabled={isInvalid}
+            className="h-10 px-5 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-medium text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#636AE8]"
           >
             Save
           </button>
