@@ -3,9 +3,18 @@
 
 import { BASE_URL } from './auth.service'
 
+async function parseError(res: Response, fallback: string) {
+  try {
+    const body = await res.json()
+    return body?.error || body?.message || fallback
+  } catch {
+    return fallback
+  }
+}
+
 export async function getInventory() {
   const res = await fetch(`${BASE_URL}/inventory`, { credentials: 'include' })
-  if (!res.ok) throw new Error('Failed to fetch inventory')
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to fetch inventory'))
   return res.json()
 }
 
@@ -22,7 +31,7 @@ export async function createItem(data: {
     body: JSON.stringify(data),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error('Failed to create item')
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to create item'))
   return res.json()
 }
 
@@ -39,7 +48,7 @@ export async function updateItem(id: string, data: {
     body: JSON.stringify(data),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error('Failed to update item')
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to update item'))
   return res.json()
 }
 
@@ -50,7 +59,7 @@ export async function updateStock(id: string, actionType: 'used-today' | 'restoc
     body: JSON.stringify({ actionType, quantityChanged }),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error('Failed to update stock')
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to update stock'))
   return res.json()
 }
 
@@ -59,5 +68,5 @@ export async function deleteItem(id: string) {
     method: 'DELETE',
     credentials: 'include',
   })
-  if (!res.ok) throw new Error('Failed to delete item')
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to delete item'))
 }
