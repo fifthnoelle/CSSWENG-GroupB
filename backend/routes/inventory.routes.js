@@ -10,26 +10,26 @@ const {
     deleteItem
 } = require("../controllers/inventory.controller");
 
-const { requireAuth } = require("../utils/auth");
+const { requireAuth, requireAdmin } = require("../utils/auth");
 
 router.use(requireAuth);
 
-// POST /inventory (Create an item)
-router.post("/", createItem);
-
-// GET /inventory (Get all items)
+// GET /inventory (Get all items) — staff + admin
 router.get("/", getItems);
 
-// GET /inventory/search?query=xyz (Search items)
+// GET /inventory/search?query=xyz (Search items) — staff + admin
 router.get("/search", searchItems);
 
-// PATCH /inventory/:id (Update stock — matches frontend's inventory_service.ts)
+// POST /inventory (Create an item) — Admin/Owner only per permissions table
+router.post("/", requireAdmin, createItem);
+
+// PATCH /inventory/:id (Update stock) — staff + admin can both adjust stock
 router.patch("/:id", updateStock);
 
-// PUT /inventory/:id (Edit item details)
-router.put("/:id", updateItem);
+// PUT /inventory/:id (Edit item details) — Admin/Owner only
+router.put("/:id", requireAdmin, updateItem);
 
-// DELETE /inventory/:id (Delete item)
-router.delete("/:id", deleteItem);
+// DELETE /inventory/:id (Delete item) — Admin/Owner only
+router.delete("/:id", requireAdmin, deleteItem);
 
 module.exports = router;
