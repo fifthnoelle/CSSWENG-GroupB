@@ -45,8 +45,14 @@ export type LogType = 'inventory' | 'accounts'
 export type ActionType =
   | 'used-today'
   | 'restock'
+  | 'create-item'
+  | 'edit-item'
+  | 'delete-item'
+  | 'create-user'
   | 'edit-user'
   | 'edit-role'
+  | 'delete-user'
+  | 'account-locked'
 
 export interface Log {
   _id: string
@@ -56,6 +62,7 @@ export interface Log {
   userTarget: string
   userTargetName: string  // only when target is a user, otherwise empty string
   itemId: string
+  itemName: string         // snapshot of item name at log time, otherwise empty string
   actionType: ActionType
   quantityChanged: number
   previousStock: number
