@@ -128,7 +128,7 @@ function AdminInventory() {
       setItems(prev => prev.map(i => (i._id === selectedItem._id ? result.item : i)))
     } catch (err) {
       console.error('Failed to update stock:', err)
-      alert('Failed to update stock. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to update stock. Please try again.')
     }
   }
 
@@ -145,7 +145,7 @@ function AdminInventory() {
       setShowAddModal(false)
     } catch (err) {
       console.error('Failed to create item:', err)
-      alert('Failed to create item. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to create item. Please try again.')
     }
   }
 
@@ -163,7 +163,7 @@ function AdminInventory() {
       setEditingItem(null)
     } catch (err) {
       console.error('Failed to update item:', err)
-      alert('Failed to update item. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to update item. Please try again.')
     }
   }
 
@@ -175,7 +175,7 @@ function AdminInventory() {
       setDeletingItem(null)
     } catch (err) {
       console.error('Failed to delete item:', err)
-      alert('Failed to delete item. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to delete item. Please try again.')
     }
   }
 
