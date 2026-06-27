@@ -62,7 +62,7 @@ export interface Log {
   userTarget: string
   userTargetName: string  // only when target is a user, otherwise empty string
   itemId: string
-  itemName: string         // snapshot of item name at log time, otherwise empty string
+  itemName?: string        // snapshot of item name at log time — inventory logs only, omitted for account logs
   actionType: ActionType
   quantityChanged: number
   previousStock: number
