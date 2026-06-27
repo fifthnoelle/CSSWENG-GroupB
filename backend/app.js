@@ -46,9 +46,18 @@ app.engine("hbs", handlebars.engine({
 //Routes
 const userRoutes = require('./routes/user.routes');
 app.use('/api', userRoutes);
+
 //Inventory Route
 const inventoryRoutes = require('./routes/inventory.routes');
 app.use('/api/inventory', inventoryRoutes);
+
+//Logs Route — Admin/Owner only, audit trail for inventory + account actions
+const logsRoutes = require('./routes/logs.routes');
+app.use('/api/logs', logsRoutes);
+
+//Reports Route — Admin/Owner only, monthly summaries + inactive item alerts
+const reportsRoutes = require('./routes/reports.routes');
+app.use('/api/reports', reportsRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {
@@ -62,5 +71,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-
-
