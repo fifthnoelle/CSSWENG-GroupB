@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import StaffInventory from './pages/StaffInventory'
 import AdminInventory from './pages/AdminInventory'
 import AccountManager from './pages/AccountManager'
+import LogsPage from './pages/LogsPage'
+import ReportsPage from './pages/ReportsPage'
 
 function App() {
   return (
@@ -35,6 +37,23 @@ function App() {
               <ProtectedRoute>
                 <AccountManager />
               </ProtectedRoute>
+            }
+          />
+          {/* Logs & Reports are Admin/Owner-only per the master doc permissions table */}
+          <Route
+            path="/logs"
+            element={
+              <AdminRoute>
+                <LogsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <AdminRoute>
+                <ReportsPage />
+              </AdminRoute>
             }
           />
           {/* Redirect root to login */}
