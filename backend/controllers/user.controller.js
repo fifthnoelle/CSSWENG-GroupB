@@ -1,11 +1,12 @@
 //ALL USER RELATED CONTROLLER FUNCTIONS
 const UsersModel = require("../models/user.model");
-const { hashPassword } = require("../utils/auth");
+const { hashPassword, validatePasswordPolicy } = require("../utils/auth");
 const { createLog } = require("./logs.controller");
 const bcrypt = require("bcrypt");
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 1000 * 60 * 15; // 15 minute lockout, adjust as needed
+const MIN_PASSWORD_AGE_MS = 1000 * 60 * 60 * 24; // 2.1.10 — 1 day
 
 /*
     TODO:
@@ -16,6 +17,10 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // 2.1.3 — generic message used for every failure case below, so the
+        // response never reveals whether the email or the password was wrong.
+        const GENERIC_FAIL = "Invalid email and/or password";
+
         if (!email || !password) {
             return res.status(400).json({ error: "Email and password are required" });
         }
@@ -23,14 +28,28 @@ const login = async (req, res) => {
         const user = await UsersModel.findOne({ email });
 
         if (!user) {
-            return res.status(401).json({ error: "Invalid email" });
+            // 2.4.5 — log failed attempts even when the account doesn't exist,
+            // without revealing that fact to the caller.
+            await createLog({
+                req: { session: {} },
+                logType: 'accounts',
+                actionType: 'login-failed',
+                userTargetName: email,
+                notes: `Failed login attempt for unknown email: ${email}`
+            });
+            return res.status(401).json({ error: GENERIC_FAIL });
         }
 
         // US-B1 AC: lock the account after 5+ failed attempts in a row.
-        // EC6/EC7-adjacent: lockout is time-based here rather than requiring
-        // a key code from the Ops Manager, since that flow is still listed
-        // as optional/Phase 4 in the dev planning doc.
         if (user.lockedUntil && user.lockedUntil > new Date()) {
+            await createLog({
+                req: { session: { userId: user._id, email: user.email } },
+                logType: 'accounts',
+                actionType: 'login-failed',
+                userTarget: user._id.toString(),
+                userTargetName: `${user.firstName} ${user.lastName}`,
+                notes: `Login attempt while account locked`
+            });
             return res.status(403).json({
                 error: "Account locked due to too many failed login attempts. Please contact your administrator or try again later.",
                 lockedUntil: user.lockedUntil
@@ -57,7 +76,24 @@ const login = async (req, res) => {
                 });
             }
 
+            // 2.1.11 — record this failed attempt so it can be reported at next success
+            user.lastLoginAt = new Date();
+            user.lastLoginStatus = 'failed';
+            user.lastLoginIp = req.ip || req.headers['x-forwarded-for'] || '';
+
             await user.save();
+
+            // 2.4.5 — log every failed authentication attempt, including lockout
+            if (!lockedOut) {
+                await createLog({
+                    req: { session: { userId: user._id, email: user.email } },
+                    logType: 'accounts',
+                    actionType: 'login-failed',
+                    userTarget: user._id.toString(),
+                    userTargetName: `${user.firstName} ${user.lastName}`,
+                    notes: `Failed login attempt (${user.failedLoginAttempts}/${MAX_FAILED_ATTEMPTS})`
+                });
+            }
 
             if (lockedOut) {
                 return res.status(403).json({
@@ -66,21 +102,33 @@ const login = async (req, res) => {
                 });
             }
 
-            // Offer an escape hatch after 2-3 failed attempts, per client request
-            const attemptsLeft = MAX_FAILED_ATTEMPTS - user.failedLoginAttempts;
-            return res.status(401).json({
-                error: "Invalid password",
-                attemptsLeft,
-                showContactHigherUps: user.failedLoginAttempts >= 2
-            });
+            return res.status(401).json({ error: GENERIC_FAIL });
         }
 
-        // Successful login — reset the failed-attempt counter
-        if (user.failedLoginAttempts || user.lockedUntil) {
-            user.failedLoginAttempts = 0;
-            user.lockedUntil = null;
-            await user.save();
-        }
+        // Successful login — capture the previous login info to report back,
+        // then reset counters and record this login.
+        const previousLogin = {
+            lastLoginAt: user.lastLoginAt,
+            lastLoginStatus: user.lastLoginStatus,
+            lastLoginIp: user.lastLoginIp
+        };
+
+        user.failedLoginAttempts = 0;
+        user.lockedUntil = null;
+        user.lastLoginAt = new Date();
+        user.lastLoginStatus = 'success';
+        user.lastLoginIp = req.ip || req.headers['x-forwarded-for'] || '';
+        await user.save();
+
+        // 2.4.5 — log successful authentication attempts too
+        await createLog({
+            req: { session: { userId: user._id, email: user.email } },
+            logType: 'accounts',
+            actionType: 'login-success',
+            userTarget: user._id.toString(),
+            userTargetName: `${user.firstName} ${user.lastName}`,
+            notes: `Successful login`
+        });
 
         req.session.email = user.email;
         req.session.role = user.role;
@@ -91,7 +139,12 @@ const login = async (req, res) => {
                 console.error("Session save error:", err);
                 return res.status(500).json({ error: "Failed to save session" });
             }
-            return res.status(200).json({ message: "Successful login", role: user.role });
+            // 2.1.11 — report the last use of the account (successful or not) at next login
+            return res.status(200).json({
+                message: "Successful login",
+                role: user.role,
+                previousLogin
+            });
         });
 
     } catch (error) {
@@ -164,6 +217,12 @@ const register = async (req, res) => {
             return res.status(409).json({ error: "User already exists with the same email" });
         }
 
+        // 2.1.4 / 2.1.5 / 2.3.3 — enforce password complexity & length policy
+        const policyError = validatePasswordPolicy(password);
+        if (policyError) {
+            return res.status(400).json({ error: policyError });
+        }
+
         const hashedPassword = await hashPassword(password);
 
         const newUser = new UsersModel({
@@ -171,6 +230,8 @@ const register = async (req, res) => {
             firstName,
             lastName,
             password: hashedPassword,
+            passwordHistory: [hashedPassword],
+            passwordChangedAt: new Date(),
             role: role || 'staff'
         });
 
@@ -231,7 +292,17 @@ const updateUser = async (req, res) => {
         const updateFields = { email, firstName, lastName, role: role || 'staff' };
 
         if (password && password.trim() !== '') {
-            updateFields.password = await hashPassword(password);
+            const policyError = validatePasswordPolicy(password);
+            if (policyError) {
+                return res.status(400).json({ error: policyError });
+            }
+            const newHash = await hashPassword(password);
+            updateFields.password = newHash;
+            updateFields.passwordChangedAt = new Date();
+            const existingHistory = targetBeforeUpdate.passwordHistory && targetBeforeUpdate.passwordHistory.length
+                ? targetBeforeUpdate.passwordHistory
+                : [targetBeforeUpdate.password];
+            updateFields.passwordHistory = [...existingHistory, newHash].slice(-10);
         }
 
         const updatedUser = await UsersModel.findByIdAndUpdate(
@@ -337,6 +408,81 @@ const searchUsers = async (req, res) => {
     }
 };
 
+// Self-service password change for the logged-in user (any role).
+// 2.1.12 — re-authenticates via current password before allowing the change.
+// 2.1.9 — rejects reuse of any password in the user's history.
+// 2.1.10 — rejects changes within MIN_PASSWORD_AGE_MS of the last change.
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!req.session.userId) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: "Current and new password are required" });
+        }
+
+        const user = await UsersModel.findById(req.session.userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Re-authentication: must prove knowledge of current password
+        const currentMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!currentMatch) {
+            await createLog({
+                req,
+                logType: 'accounts',
+                actionType: 'login-failed',
+                userTarget: user._id.toString(),
+                userTargetName: `${user.firstName} ${user.lastName}`,
+                notes: 'Failed re-authentication during password change attempt'
+            });
+            return res.status(401).json({ error: "Current password is incorrect" });
+        }
+
+        // 2.1.10 — minimum password age
+        if (user.passwordChangedAt && (Date.now() - user.passwordChangedAt.getTime()) < MIN_PASSWORD_AGE_MS) {
+            return res.status(400).json({ error: "Your password was changed too recently. Please wait before changing it again." });
+        }
+
+        // 2.1.4 / 2.1.5 — complexity & length policy
+        const policyError = validatePasswordPolicy(newPassword);
+        if (policyError) {
+            return res.status(400).json({ error: policyError });
+        }
+
+        // 2.1.9 — reject reuse against full password history (including current password)
+        const history = user.passwordHistory && user.passwordHistory.length ? user.passwordHistory : [user.password];
+        for (const oldHash of history) {
+            if (await bcrypt.compare(newPassword, oldHash)) {
+                return res.status(400).json({ error: "You cannot reuse a previous password." });
+            }
+        }
+
+        const newHash = await hashPassword(newPassword);
+        user.password = newHash;
+        user.passwordHistory = [...history, newHash].slice(-10); // keep last 10
+        user.passwordChangedAt = new Date();
+        await user.save();
+
+        await createLog({
+            req,
+            logType: 'accounts',
+            actionType: 'edit-user',
+            userTarget: user._id.toString(),
+            userTargetName: `${user.firstName} ${user.lastName}`,
+            notes: 'Password changed via self-service (re-authenticated)'
+        });
+
+        return res.status(200).json({ message: "Password changed successfully" });
+    } catch (error) {
+        console.error("Error in changePassword:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //Exports for routes
 module.exports = {
     login,
@@ -347,5 +493,6 @@ module.exports = {
     deleteUser,
     getAllUsers,
     searchUsers,
-    updateUser
+    updateUser,
+    changePassword
 };
