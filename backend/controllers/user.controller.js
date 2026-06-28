@@ -1,6 +1,6 @@
 //ALL USER RELATED CONTROLLER FUNCTIONS
 const UsersModel = require("../models/user.model");
-const { hashPassword, validatePasswordPolicy } = require("../utils/auth");
+const { hashPassword, validatePasswordPolicy, validateSecurityAnswer } = require("../utils/auth");
 const { createLog } = require("./logs.controller");
 const bcrypt = require("bcrypt");
 
@@ -206,10 +206,17 @@ const getAllUsers = async (req, res) => {
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
     try {
-        const { email, firstName, lastName, password, role } = req.body;
+        const { email, firstName, lastName, password, role, securityQuestion, securityAnswer } = req.body;
 
         if (!email || !firstName || !lastName || !password) {
             return res.status(400).json({ error: "All fields are required" });
+        }
+        if (!securityQuestion || !securityQuestion.trim()) {
+            return res.status(400).json({ error: "A security question is required for password recovery" });
+        }
+        const answerError = validateSecurityAnswer(securityAnswer);
+        if (answerError) {
+            return res.status(400).json({ error: answerError });
         }
 
         const existingUser = await UsersModel.findOne({ email });
@@ -224,6 +231,7 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await hashPassword(password);
+        const securityAnswerHash = await hashPassword(securityAnswer.trim());
 
         const newUser = new UsersModel({
             email,
@@ -232,6 +240,8 @@ const register = async (req, res) => {
             password: hashedPassword,
             passwordHistory: [hashedPassword],
             passwordChangedAt: new Date(),
+            securityQuestion: securityQuestion.trim(),
+            securityAnswerHash,
             role: role || 'staff'
         });
 
@@ -483,6 +493,127 @@ const changePassword = async (req, res) => {
     }
 };
 
+// PUBLIC — step 1 of password recovery: return the user's security question.
+// Generic responses are used everywhere here to avoid leaking which emails exist.
+const GENERIC_RECOVERY_FAIL = "If an account exists for this email with a security question set, you'll be able to continue. Otherwise, contact your administrator.";
+
+const getSecurityQuestion = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        const user = await UsersModel.findOne({ email });
+        if (!user || !user.securityQuestion) {
+            // Don't reveal whether the email exists at all.
+            return res.status(404).json({ error: GENERIC_RECOVERY_FAIL });
+        }
+
+        if (user.securityAnswerLockedUntil && user.securityAnswerLockedUntil > new Date()) {
+            return res.status(403).json({
+                error: "Too many incorrect answers. Please try again later or contact your administrator.",
+                lockedUntil: user.securityAnswerLockedUntil
+            });
+        }
+
+        return res.status(200).json({ question: user.securityQuestion });
+    } catch (error) {
+        console.error("Error in getSecurityQuestion:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// PUBLIC — step 2: verify the answer and, if correct, set the new password.
+// 2.1.9 — reject reuse against password history.
+// Note: the 1-day minimum password age (2.1.10) is intentionally NOT enforced
+// here — that rule exists to stop an attacker who already has the password
+// from forcing churn; it shouldn't block a legitimate user who lost access.
+const resetPasswordWithAnswer = async (req, res) => {
+    try {
+        const { email, securityAnswer, newPassword } = req.body;
+        if (!email || !securityAnswer || !newPassword) {
+            return res.status(400).json({ error: "Email, security answer, and new password are required" });
+        }
+
+        const user = await UsersModel.findOne({ email });
+        if (!user || !user.securityQuestion) {
+            return res.status(404).json({ error: GENERIC_RECOVERY_FAIL });
+        }
+
+        if (user.securityAnswerLockedUntil && user.securityAnswerLockedUntil > new Date()) {
+            return res.status(403).json({
+                error: "Too many incorrect answers. Please try again later or contact your administrator.",
+                lockedUntil: user.securityAnswerLockedUntil
+            });
+        }
+
+        const answerMatch = await bcrypt.compare(securityAnswer.trim(), user.securityAnswerHash);
+        if (!answerMatch) {
+            user.securityAnswerAttempts = (user.securityAnswerAttempts || 0) + 1;
+            let lockedOut = false;
+            if (user.securityAnswerAttempts >= MAX_FAILED_ATTEMPTS) {
+                user.securityAnswerLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+                lockedOut = true;
+            }
+            await user.save();
+
+            await createLog({
+                req: { session: { userId: user._id, email: user.email } },
+                logType: 'accounts',
+                actionType: 'login-failed',
+                userTarget: user._id.toString(),
+                userTargetName: `${user.firstName} ${user.lastName}`,
+                notes: lockedOut
+                    ? `Security answer locked after ${user.securityAnswerAttempts} failed attempts`
+                    : `Failed password-reset security answer attempt (${user.securityAnswerAttempts}/${MAX_FAILED_ATTEMPTS})`
+            });
+
+            return res.status(401).json({ error: GENERIC_RECOVERY_FAIL });
+        }
+
+        // 2.1.4 / 2.1.5 — complexity & length policy
+        const policyError = validatePasswordPolicy(newPassword);
+        if (policyError) {
+            return res.status(400).json({ error: policyError });
+        }
+
+        // 2.1.9 — reject reuse against full password history
+        const history = user.passwordHistory && user.passwordHistory.length ? user.passwordHistory : [user.password];
+        for (const oldHash of history) {
+            if (await bcrypt.compare(newPassword, oldHash)) {
+                return res.status(400).json({ error: "You cannot reuse a previous password." });
+            }
+        }
+
+        const newHash = await hashPassword(newPassword);
+        user.password = newHash;
+        user.passwordHistory = [...history, newHash].slice(-10);
+        user.passwordChangedAt = new Date();
+
+        // Identity is proven — clear login lockouts and answer-attempt counters too
+        user.failedLoginAttempts = 0;
+        user.lockedUntil = null;
+        user.securityAnswerAttempts = 0;
+        user.securityAnswerLockedUntil = null;
+        await user.save();
+
+        await createLog({
+            req: { session: { userId: user._id, email: user.email } },
+            logType: 'accounts',
+            actionType: 'edit-user',
+            userTarget: user._id.toString(),
+            userTargetName: `${user.firstName} ${user.lastName}`,
+            notes: 'Password reset via security question'
+        });
+
+        return res.status(200).json({ message: "Password reset successfully. Please log in with your new password." });
+    } catch (error) {
+        console.error("Error in resetPasswordWithAnswer:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 //Exports for routes
 module.exports = {
     login,
@@ -494,5 +625,7 @@ module.exports = {
     getAllUsers,
     searchUsers,
     updateUser,
-    changePassword
+    changePassword,
+    getSecurityQuestion,
+    resetPasswordWithAnswer
 };
