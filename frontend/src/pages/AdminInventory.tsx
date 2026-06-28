@@ -40,52 +40,52 @@ function InventoryCard({
 }) {
   const s = statusConfig[getStatus(item)]
   return (
-    <div className="bg-white rounded-2xl border border-[#dee1e6] shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] flex flex-col">
+    <div className="bg-white dark:bg-[#1f2128] rounded-2xl border border-[#dee1e6] dark:border-white/10 shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] flex flex-col">
       <div className="p-4 flex-1">
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="min-w-0">
-            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] leading-5 truncate">{item.itemName}</p>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0] leading-4">{item.itemType}</p>
+            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] dark:text-[#e5e7eb] leading-5 truncate">{item.itemName}</p>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280] leading-4">{item.itemType}</p>
           </div>
           <span className={`shrink-0 text-[10px] font-semibold font-[Archivo] px-2.5 py-1 rounded-full border ${s.bg} ${s.border} ${s.text} whitespace-nowrap`}>
             {s.label}
           </span>
         </div>
         <div className="mt-3">
-          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f]">Starting Stock</p>
-          <p className="font-[Archivo] text-xs text-[#323842] mt-0.5">{item.startingStock} {item.measurementUnit}</p>
+          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f] dark:text-[#e5e7eb]">Starting Stock</p>
+          <p className="font-[Archivo] text-xs text-[#323842] dark:text-[#9095a0] mt-0.5">{item.startingStock} {item.measurementUnit}</p>
         </div>
-        <div className="border-t border-[#dee1e6] my-3" />
+        <div className="border-t border-[#dee1e6] dark:border-white/10 my-3" />
         <div>
-          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f]">Current Stock</p>
-          <p className="font-[Archivo] text-xs text-[#323842] mt-0.5">{item.currentStock} {item.measurementUnit}</p>
+          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f] dark:text-[#e5e7eb]">Current Stock</p>
+          <p className="font-[Archivo] text-xs text-[#323842] dark:text-[#9095a0] mt-0.5">{item.currentStock} {item.measurementUnit}</p>
         </div>
       </div>
 
       {/* Admin action buttons: add stock | edit | delete */}
-      <div className="border-t border-[#dee1e6] px-4 py-2 flex items-center">
+      <div className="border-t border-[#dee1e6] dark:border-white/10 px-4 py-2 flex items-center">
         <button
           id={`btn-add-stock-${item._id}`}
           onClick={onAddClick}
-          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100"
+          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
         >
-          <img className="w-5 h-5" src="/assets/icon-add-circle.svg" alt="add stock" />
+          <img className="w-5 h-5 dark:invert" src="/assets/icon-add-circle.svg" alt="add stock" />
         </button>
-        <div className="w-px h-5 bg-[#dee1e6]" />
+        <div className="w-px h-5 bg-[#dee1e6] dark:bg-white/10" />
         <button
           id={`btn-edit-${item._id}`}
           onClick={onEditClick}
-          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100"
+          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
         >
-          <img className="w-4 h-4" src="/assets/icon-pen.svg" alt="edit" />
+          <img className="w-4 h-4 dark:invert" src="/assets/icon-pen.svg" alt="edit" />
         </button>
-        <div className="w-px h-5 bg-[#dee1e6]" />
+        <div className="w-px h-5 bg-[#dee1e6] dark:bg-white/10" />
         <button
           id={`btn-delete-${item._id}`}
           onClick={onDeleteClick}
-          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100"
+          className="flex-1 flex justify-center p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
         >
-          <img className="w-4 h-4" src="/assets/icon-trash.svg" alt="delete" />
+          <img className="w-4 h-4 dark:invert" src="/assets/icon-trash.svg" alt="delete" />
         </button>
       </div>
     </div>
@@ -213,18 +213,18 @@ function AdminInventory() {
 
           {/* Alert banner */}
           {showAlert && lowCount > 0 && (
-            <div className="flex items-start gap-3 p-4 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl mb-6">
-              <div className="w-9 h-9 bg-[#FEF3C7] rounded-full flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-3 p-4 bg-[#FFFBEB] dark:bg-[#3f2d08] border border-[#FDE68A] dark:border-[#78350F] rounded-xl mb-6">
+              <div className="w-9 h-9 bg-[#FEF3C7] dark:bg-[#78350F] rounded-full flex items-center justify-center shrink-0">
                 <img className="w-5 h-5" src="/assets/icon-alert.svg" alt="alert" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-[Archivo] text-sm font-bold text-[#78350F]">Attention Required</p>
-                <p className="font-[Archivo] text-xs text-[#B45309] mt-1 leading-4">
+                <p className="font-[Archivo] text-sm font-bold text-[#78350F] dark:text-[#FDE68A]">Attention Required</p>
+                <p className="font-[Archivo] text-xs text-[#B45309] dark:text-[#FDE68A] mt-1 leading-4">
                   There are <span className="font-bold">{lowCount} items</span> that are currently Low or Out of Stock. Please check the inventory levels.
                 </p>
               </div>
               <button className="shrink-0 p-1" onClick={() => setShowAlert(false)}>
-                <img className="w-4 h-4" src="/assets/icon-close.svg" alt="close" />
+                <img className="w-4 h-4 dark:invert" src="/assets/icon-close.svg" alt="close" />
               </button>
             </div>
           )}
@@ -232,14 +232,14 @@ function AdminInventory() {
           {/* Title + controls */}
           <div className="flex flex-col gap-3 mb-6">
             <div>
-              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Inventory Management</h1>
-              <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">Manage and track your supplies and ingredients.</p>
+              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] dark:text-[#f3f4f6] tracking-tight">Inventory Management</h1>
+              <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">Manage and track your supplies and ingredients.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-10 bg-white border border-[#dee1e6] rounded-md shadow-sm cursor-pointer">
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-filter.svg" alt="filter" />
-                <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">Filter: All</span>
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer">
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
+                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: All</span>
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
               {/* Add Ingredient — admin only */}
               <button
@@ -254,10 +254,10 @@ function AdminInventory() {
 
           {/* Loading / error states */}
           {loading && (
-            <p className="font-[Archivo] text-sm text-[#565e6c]">Loading inventory...</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">Loading inventory...</p>
           )}
           {!loading && loadError && (
-            <p className="font-[Archivo] text-sm text-[#BE123C]">{loadError}</p>
+            <p className="font-[Archivo] text-sm text-[#BE123C] dark:text-[#fca5a5]">{loadError}</p>
           )}
 
           {/* Grid */}
@@ -306,15 +306,15 @@ function AdminInventory() {
       {/* Delete Confirmation */}
       {deletingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-[400px] mx-6 bg-white rounded-xl shadow-lg p-5">
-            <p className="font-[Archivo] text-lg font-semibold text-[#171a1f] mb-2">Delete Ingredient</p>
-            <p className="font-[Archivo] text-sm text-[#565e6c] mb-5">
-              Are you sure you want to delete <span className="font-semibold text-[#171a1f]">{deletingItem.itemName}</span>? This cannot be undone.
+          <div className="w-full max-w-[400px] mx-6 bg-white dark:bg-[#1f2128] rounded-xl shadow-lg p-5">
+            <p className="font-[Archivo] text-lg font-semibold text-[#171a1f] dark:text-[#f3f4f6] mb-2">Delete Ingredient</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mb-5">
+              Are you sure you want to delete <span className="font-semibold text-[#171a1f] dark:text-[#f3f4f6]">{deletingItem.itemName}</span>? This cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeletingItem(null)}
-                className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
+                className="h-10 px-5 border border-[#dee1e6] dark:border-white/10 rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] bg-white dark:bg-[#1f2128] hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>
