@@ -1,6 +1,46 @@
 const InventoryModel = require("../models/inventory.model");
 const { createLog } = require("./logs.controller");
 
+const MAX_NAME_LENGTH = 100;
+const MAX_TYPE_LENGTH = 50;
+const MAX_UNIT_LENGTH = 20;
+// 2.3.2 / 2.3.3 — allow-listed characters and max length for free-text fields.
+// Anything outside this is REJECTED outright (never trimmed/sanitized then saved).
+const TEXT_FIELD_PATTERN = /^[A-Za-z0-9 .,'\-/]+$/;
+
+function validateTextField(value, fieldLabel, maxLength) {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return `${fieldLabel} is required`;
+    }
+    if (value.length > maxLength) {
+        return `${fieldLabel} must be at most ${maxLength} characters`;
+    }
+    if (!TEXT_FIELD_PATTERN.test(value)) {
+        return `${fieldLabel} contains invalid characters`;
+    }
+    return null;
+}
+
+function validateNonNegativeNumber(value, fieldLabel) {
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+        return `${fieldLabel} must be a valid number`;
+    }
+    if (value < 0) {
+        return `${fieldLabel} cannot be negative`;
+    }
+    return null;
+}
+
+// 2.4.4 — every validation failure is logged (out-of-range, bad characters, etc.)
+async function logValidationFailure(req, reason) {
+    await createLog({
+        req,
+        logType: 'inventory',
+        actionType: 'validation-failure',
+        notes: reason
+    });
+}
+
 const createItem = async (req, res) => {
     try {
         const {
@@ -11,25 +51,18 @@ const createItem = async (req, res) => {
             lowStockThreshold
         } = req.body;
 
-        // Validation
-        if (
-            !itemName ||
-            !itemType ||
-            !measurementUnit ||
-            startingStock === undefined ||
-            lowStockThreshold === undefined
-        ) {
-            return res.status(400).json({
-                error: "All fields are required"
-            });
-        }
+        // 2.3.1 — reject on any validation failure; never silently sanitize/coerce.
+        const errors = [
+            validateTextField(itemName, "Item name", MAX_NAME_LENGTH),
+            validateTextField(itemType, "Item type", MAX_TYPE_LENGTH),
+            validateTextField(measurementUnit, "Measurement unit", MAX_UNIT_LENGTH),
+            validateNonNegativeNumber(startingStock, "Starting stock"),
+            validateNonNegativeNumber(lowStockThreshold, "Low stock threshold")
+        ].filter(Boolean);
 
-        // EC14 / EC16 — reject negative starting stock and negative thresholds
-        if (startingStock < 0) {
-            return res.status(400).json({ error: "Starting stock cannot be negative" });
-        }
-        if (lowStockThreshold < 0) {
-            return res.status(400).json({ error: "Low stock threshold cannot be negative" });
+        if (errors.length) {
+            await logValidationFailure(req, `createItem rejected: ${errors.join('; ')}`);
+            return res.status(400).json({ error: errors[0] });
         }
 
         // EC11 — block duplicate item names (case-insensitive)
@@ -124,13 +157,38 @@ const searchItems = async (req, res) => {
 const updateItem = async (req, res) => {
     try {
         const itemId = req.params.id;
-        const updateData = req.body;
+        const body = req.body;
 
-        if (updateData.startingStock !== undefined && updateData.startingStock < 0) {
-            return res.status(400).json({ error: "Starting stock cannot be negative" });
+        // Whitelist editable fields only — prevents a client from directly
+        // overwriting currentStock, createdBy, _id, etc. via this endpoint.
+        // Stock changes must go through updateStock() so they stay audited.
+        const updateData = {};
+        const errors = [];
+
+        if (body.itemName !== undefined) {
+            const err = validateTextField(body.itemName, "Item name", MAX_NAME_LENGTH);
+            if (err) errors.push(err); else updateData.itemName = body.itemName;
         }
-        if (updateData.lowStockThreshold !== undefined && updateData.lowStockThreshold < 0) {
-            return res.status(400).json({ error: "Low stock threshold cannot be negative" });
+        if (body.itemType !== undefined) {
+            const err = validateTextField(body.itemType, "Item type", MAX_TYPE_LENGTH);
+            if (err) errors.push(err); else updateData.itemType = body.itemType;
+        }
+        if (body.measurementUnit !== undefined) {
+            const err = validateTextField(body.measurementUnit, "Measurement unit", MAX_UNIT_LENGTH);
+            if (err) errors.push(err); else updateData.measurementUnit = body.measurementUnit;
+        }
+        if (body.startingStock !== undefined) {
+            const err = validateNonNegativeNumber(body.startingStock, "Starting stock");
+            if (err) errors.push(err); else updateData.startingStock = body.startingStock;
+        }
+        if (body.lowStockThreshold !== undefined) {
+            const err = validateNonNegativeNumber(body.lowStockThreshold, "Low stock threshold");
+            if (err) errors.push(err); else updateData.lowStockThreshold = body.lowStockThreshold;
+        }
+
+        if (errors.length) {
+            await logValidationFailure(req, `updateItem rejected: ${errors.join('; ')}`);
+            return res.status(400).json({ error: errors[0] });
         }
 
         const existingItem = await InventoryModel.findById(itemId);
@@ -179,6 +237,7 @@ const updateStock = async (req, res) => {
     try {
         // EC23 — only numeric, positive quantities accepted
         if (typeof quantityChanged !== 'number' || isNaN(quantityChanged) || quantityChanged <= 0) {
+            await logValidationFailure(req, `updateStock rejected: invalid quantityChanged (${JSON.stringify(quantityChanged)})`);
             return res.status(400).json({ error: "Quantity must be a positive number" });
         }
 
