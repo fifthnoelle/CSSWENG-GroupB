@@ -111,6 +111,18 @@ function UserCard({
             <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">{user.createdAt}</p>
           </div>
         </div>
+        {/* 2.1.11 — admins can see last login/attempt for every account */}
+        <div className="flex items-center gap-2">
+          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-account.svg" alt="last login" />
+          <div>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Last Login</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">
+              {user.lastLoginAt
+                ? `${new Date(user.lastLoginAt).toLocaleString()} (${user.lastLoginStatus === 'failed' ? 'failed attempt' : 'success'})`
+                : 'Never logged in'}
+            </p>
+          </div>
+        </div>
       </div>
 
     </div>
