@@ -185,6 +185,10 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
           {sidebarContent}
         </aside>
       </div>
+
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
     </>
   )
 }
