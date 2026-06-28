@@ -65,10 +65,11 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Not Found' });
 });
 
-// Global error handler
+// Global error handler — 2.4.1/2.4.2: never leak stack traces or internal
+// error details to the client; log them server-side instead.
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
+  res.status(err.status || 500).json({ message: 'An unexpected error occurred. Please try again later.' });
 });
 
 module.exports = app;
