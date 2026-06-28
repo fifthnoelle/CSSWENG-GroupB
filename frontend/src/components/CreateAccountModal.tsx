@@ -175,8 +175,6 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           </div>
         </div>
 
-        </div>
-
         {/* Security Question — used for self-service password recovery (2.1.8) */}
         <div className="px-5 pb-1 flex flex-col gap-4">
           <div>
