@@ -3,67 +3,84 @@ const LogsModel = require("../models/logs.model");
 
 /**
  * GET /reports/monthly-summary?month=YYYY-MM
+ * GET /reports/monthly-summary?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ *
  * Implements US-A5: "see a monthly summary of beginning inventory, purchases,
  * usage, and ending stock so that I can accurately calculate costs and plan
  * for upcoming events."
  *
- * Beginning inventory for the month = currentStock as of the last log
- * BEFORE the month started (falls back to the item's startingStock if there
- * is no earlier log, i.e. the item didn't exist yet).
- * Purchases = sum of 'restock' quantityChanged within the month.
- * Usage = sum of 'used-today' quantityChanged within the month.
- * Ending stock = currentStock as of the last log within the month
- * (equivalently beginning + purchases - usage).
+ * Accepts either a `month` (the default month-end reconciliation view the
+ * client actually asked for) OR an explicit `startDate`/`endDate` range for
+ * anyone who wants a custom window instead of a full calendar month.
+ * If both are omitted, defaults to the current calendar month.
  */
 const getMonthlySummary = async (req, res) => {
     try {
-        const { month } = req.query; // expected format: "YYYY-MM"
+        const { month, startDate, endDate } = req.query;
 
-        const now = new Date();
-        const targetMonth = month
-            ? new Date(`${month}-01T00:00:00.000Z`)
-            : new Date(now.getFullYear(), now.getMonth(), 1);
+        let rangeStart;
+        let rangeEnd; // exclusive upper bound
 
-        if (isNaN(targetMonth.getTime())) {
-            return res.status(400).json({ error: "Invalid month format. Use YYYY-MM." });
+        if (startDate || endDate) {
+            if (!startDate || !endDate) {
+                return res.status(400).json({ error: "Both startDate and endDate are required for a custom range." });
+            }
+            rangeStart = new Date(`${startDate}T00:00:00.000`);
+            const endDateExclusive = new Date(`${endDate}T00:00:00.000`);
+            endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+            rangeEnd = endDateExclusive;
+
+            if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
+                return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
+            }
+            if (rangeStart >= rangeEnd) {
+                return res.status(400).json({ error: "startDate must be before endDate." });
+            }
+        } else {
+            const now = new Date();
+            const targetMonth = month
+                ? new Date(`${month}-01T00:00:00.000Z`)
+                : new Date(now.getFullYear(), now.getMonth(), 1);
+
+            if (isNaN(targetMonth.getTime())) {
+                return res.status(400).json({ error: "Invalid month format. Use YYYY-MM." });
+            }
+
+            rangeStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+            rangeEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
         }
-
-        const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
-        const startOfNextMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
 
         const items = await InventoryModel.find();
 
         const summary = await Promise.all(items.map(async (item) => {
             const itemId = item._id.toString();
 
-            // Last log strictly before this month started -> beginning-of-month stock
-            const lastLogBeforeMonth = await LogsModel.findOne({
+            const lastLogBeforeRange = await LogsModel.findOne({
                 itemId,
                 logType: 'inventory',
-                actionTime: { $lt: startOfMonth }
+                actionTime: { $lt: rangeStart }
             }).sort({ actionTime: -1 });
 
-            const beginningStock = lastLogBeforeMonth
-                ? lastLogBeforeMonth.newStock
+            const beginningStock = lastLogBeforeRange
+                ? lastLogBeforeRange.newStock
                 : item.startingStock;
 
-            // All inventory logs within the month, oldest first
-            const monthLogs = await LogsModel.find({
+            const rangeLogs = await LogsModel.find({
                 itemId,
                 logType: 'inventory',
-                actionTime: { $gte: startOfMonth, $lt: startOfNextMonth }
+                actionTime: { $gte: rangeStart, $lt: rangeEnd }
             }).sort({ actionTime: 1 });
 
             let purchases = 0;
             let usage = 0;
-            for (const log of monthLogs) {
+            for (const log of rangeLogs) {
                 if (log.actionType === 'restock') purchases += log.quantityChanged;
                 else if (log.actionType === 'used-today') usage += log.quantityChanged;
             }
 
-            const endingStock = monthLogs.length > 0
-                ? monthLogs[monthLogs.length - 1].newStock
-                : beginningStock; // no activity this month -> unchanged
+            const endingStock = rangeLogs.length > 0
+                ? rangeLogs[rangeLogs.length - 1].newStock
+                : beginningStock;
 
             return {
                 itemId,
@@ -77,8 +94,12 @@ const getMonthlySummary = async (req, res) => {
             };
         }));
 
+        const inclusiveEnd = new Date(rangeEnd.getTime() - 1);
+
         return res.status(200).json({
-            month: `${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}`,
+            month: month || `${rangeStart.getFullYear()}-${String(rangeStart.getMonth() + 1).padStart(2, '0')}`,
+            startDate: rangeStart.toISOString().slice(0, 10),
+            endDate: inclusiveEnd.toISOString().slice(0, 10),
             items: summary
         });
     } catch (error) {
@@ -91,8 +112,6 @@ const getMonthlySummary = async (req, res) => {
  * GET /reports/inactive-items?days=30
  * US-A8: alert when an item has not been used (no 'used-today' log) in
  * over a month, so the owner can decide whether to keep stocking it.
- * "Used" is interpreted strictly as deduction activity, not restocks —
- * an item can be restocked regularly while still not actually selling.
  */
 const getInactiveItems = async (req, res) => {
     try {
