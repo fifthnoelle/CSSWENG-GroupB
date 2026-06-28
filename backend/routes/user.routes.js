@@ -16,6 +16,8 @@ router.post("/logout", userController.logout);
 router.get("/load-users", requireAdmin, userController.getAllUsers);
 router.post("/register", requireAdmin, userController.register);
 router.patch("/update-user/:id", requireAdmin, userController.updateUser);
+// Self-service password change (any authenticated role), re-authenticates with current password
+router.post("/change-password", requireAuth, userController.changePassword);
 // NEW: Delete user route, protected by requireAdmin
 // The ":id" allows us to pass the specific user's database ID in the URL
 router.delete("/delete-user/:id", requireAdmin, userController.deleteUser);
