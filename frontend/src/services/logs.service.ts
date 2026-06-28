@@ -27,6 +27,9 @@ export interface LogsResponse {
 }
 
 async function parseError(res: Response, fallback: string) {
+  if (res.status === 401) {
+    window.location.href = '/login'
+  }
   try {
     const body = await res.json()
     return body?.error || body?.message || fallback
