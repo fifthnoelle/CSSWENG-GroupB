@@ -125,6 +125,9 @@ function AccountManager() {
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+
+  const lockedUsers = users.filter(u => u.lockedUntil && new Date(u.lockedUntil) > new Date())
 
   useEffect(() => {
     setIsLoading(true)
@@ -217,10 +220,55 @@ function AccountManager() {
             )}
           </div>
           <div className="relative shrink-0">
-            <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center">
-              <span className="font-[Archivo] text-white text-[10px]">5</span>
-            </div>
+            <button
+              onClick={() => setShowNotifDropdown(o => !o)}
+              className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
+            </button>
+            {lockedUsers.length > 0 && (
+              <div className="absolute top-0 right-0 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center pointer-events-none">
+                <span className="font-[Archivo] text-white text-[10px]">{lockedUsers.length}</span>
+              </div>
+            )}
+
+            {showNotifDropdown && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowNotifDropdown(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-[#dee1e6] rounded-xl shadow-lg z-20 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#dee1e6]">
+                    <p className="font-[Archivo] text-sm font-bold text-[#171a1f]">Notifications</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {lockedUsers.length === 0 && (
+                      <p className="px-4 py-6 text-center font-[Archivo] text-sm text-[#9095a0]">
+                        No locked accounts right now.
+                      </p>
+                    )}
+                    {lockedUsers.map(user => (
+                      <button
+                        key={user._id}
+                        onClick={() => {
+                          setUserToEdit(user)
+                          setShowNotifDropdown(false)
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-[#dee1e6] last:border-b-0 hover:bg-gray-50 text-left transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="font-[Archivo] text-xs text-[#565e6c] mt-0.5">{user.email}</p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-semibold font-[Archivo] px-2.5 py-1 rounded-full bg-[#FFE4E6] text-[#BE123C] whitespace-nowrap">
+                          Locked
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
