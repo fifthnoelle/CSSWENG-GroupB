@@ -62,6 +62,7 @@ function Inventory() {
   const [loadError, setLoadError] = useState('')
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
@@ -95,46 +96,50 @@ function Inventory() {
   }
 
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={staffUser} navItems={staffNavItems} />
+      <Sidebar user={staffUser} navItems={staffNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
         {/* Header */}
-        <header className="h-16 border-b border-[#dee1e6] flex items-center px-4 gap-3 shrink-0 bg-white z-10">
-          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 rounded-md">
-            <img className="w-4 h-4 shrink-0" src="/assets/icon-search.svg" alt="search" />
+        <header className="h-16 border-b border-[#dee1e6] dark:border-white/10 flex items-center px-4 gap-3 shrink-0 bg-white dark:bg-[#14151a] z-10">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5 text-[#171a1f] dark:text-[#e5e7eb]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 dark:bg-white/5 rounded-md">
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-search.svg" alt="search" />
             <input
               type="text"
               placeholder="Search ingredient..."
-              className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
+              className="flex-1 text-sm font-[Archivo] text-[#565e6c] dark:text-[#d1d5db] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-transparent"
             />
           </div>
           <NotificationBell />
-          <div className="md:hidden w-8 h-8 rounded-full bg-[#d3f9e0] flex items-center justify-center shrink-0">
-            <span className="font-[Archivo] text-xs font-bold text-[#073517]">JR</span>
-          </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 md:pb-6 overflow-y-auto min-h-0">
+        <main className="flex-1 p-4 lg:p-6 pb-6 overflow-y-auto min-h-0">
 
           {/* Alert banner */}
           {showAlert && lowCount > 0 && (
-            <div className="flex items-start gap-3 p-4 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl mb-6">
-              <div className="w-9 h-9 bg-[#FEF3C7] rounded-full flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-3 p-4 bg-[#FFFBEB] dark:bg-[#3f2d08] border border-[#FDE68A] dark:border-[#78350F] rounded-xl mb-6">
+              <div className="w-9 h-9 bg-[#FEF3C7] dark:bg-[#78350F] rounded-full flex items-center justify-center shrink-0">
                 <img className="w-5 h-5" src="/assets/icon-alert.svg" alt="alert" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-[Archivo] text-sm font-bold text-[#78350F]">Attention Required</p>
-                <p className="font-[Archivo] text-xs text-[#B45309] mt-1 leading-4">
+                <p className="font-[Archivo] text-sm font-bold text-[#78350F] dark:text-[#FDE68A]">Attention Required</p>
+                <p className="font-[Archivo] text-xs text-[#B45309] dark:text-[#FDE68A] mt-1 leading-4">
                   There are <span className="font-bold">{lowCount} items</span> that are currently Low or Out of Stock. Please check the inventory levels.
                 </p>
               </div>
               <button className="shrink-0 p-1" onClick={() => setShowAlert(false)}>
-                <img className="w-4 h-4" src="/assets/icon-close.svg" alt="close" />
+                <img className="w-4 h-4 dark:invert" src="/assets/icon-close.svg" alt="close" />
               </button>
             </div>
           )}
@@ -142,24 +147,24 @@ function Inventory() {
           {/* Title + filter */}
           <div className="flex flex-col gap-3 mb-6">
             <div>
-              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Inventory Management</h1>
-              <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">Manage and track your supplies and ingredients.</p>
+              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] dark:text-[#f3f4f6] tracking-tight">Inventory Management</h1>
+              <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">Manage and track your supplies and ingredients.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-10 bg-white border border-[#dee1e6] rounded-md shadow-sm cursor-pointer w-full md:w-auto">
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-filter.svg" alt="filter" />
-                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] flex-1">Filter: All</span>
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer w-full md:w-auto">
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
+                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] flex-1">Filter: All</span>
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
             </div>
           </div>
 
           {/* Loading / error states */}
           {loading && (
-            <p className="font-[Archivo] text-sm text-[#565e6c]">Loading inventory...</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">Loading inventory...</p>
           )}
           {!loading && loadError && (
-            <p className="font-[Archivo] text-sm text-[#BE123C]">{loadError}</p>
+            <p className="font-[Archivo] text-sm text-[#BE123C] dark:text-[#fca5a5]">{loadError}</p>
           )}
 
           {/* Grid */}
@@ -172,14 +177,6 @@ function Inventory() {
           )}
         </main>
       </div>
-
-      {/* ── Mobile bottom nav ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <div className="flex flex-col items-center gap-0.5 px-6 py-2">
-          <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
-          <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Inventory</span>
-        </div>
-      </nav>
 
       {/* ── Stock Update Modal ── */}
       {selectedItem && (
