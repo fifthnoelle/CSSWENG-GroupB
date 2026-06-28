@@ -13,18 +13,33 @@ interface Props {
   }) => void
 }
 
+// Predefined option sets, drawn from the item types/units already seen in
+// inventory data. "Other" reveals a free-text field for anything new.
+const ITEM_TYPE_OPTIONS = ['Packaging', 'Condiment', 'Ingredient', 'Utensil']
+const MEASUREMENT_UNIT_OPTIONS = ['PCS', 'PACKS', 'BOTTLES', 'GALLONS', 'KGS', 'BOXES']
+
+const OTHER = '__other__'
+
 function ItemFormModal({ item, onClose, onSave }: Props) {
   const isEdit = !!item
 
+  const initialTypeIsKnown = !item?.itemType || ITEM_TYPE_OPTIONS.includes(item.itemType)
+  const initialUnitIsKnown = !item?.measurementUnit || MEASUREMENT_UNIT_OPTIONS.includes(item.measurementUnit)
+
   const [itemName, setItemName] = useState(item?.itemName ?? '')
-  const [itemType, setItemType] = useState(item?.itemType ?? '')
-  const [measurementUnit, setMeasurementUnit] = useState(item?.measurementUnit ?? '')
+  const [itemType, setItemType] = useState(initialTypeIsKnown ? (item?.itemType ?? '') : OTHER)
+  const [customItemType, setCustomItemType] = useState(initialTypeIsKnown ? '' : (item?.itemType ?? ''))
+  const [measurementUnit, setMeasurementUnit] = useState(initialUnitIsKnown ? (item?.measurementUnit ?? '') : OTHER)
+  const [customMeasurementUnit, setCustomMeasurementUnit] = useState(initialUnitIsKnown ? '' : (item?.measurementUnit ?? ''))
   const [startingStock, setStartingStock] = useState(String(item?.startingStock ?? ''))
   const [lowStockThreshold, setLowStockThreshold] = useState(String(item?.lowStockThreshold ?? ''))
   const [error, setError] = useState('')
 
   function handleSave() {
-    if (!itemName.trim() || !itemType.trim() || !measurementUnit.trim()) {
+    const resolvedItemType = (itemType === OTHER ? customItemType : itemType).trim()
+    const resolvedMeasurementUnit = (measurementUnit === OTHER ? customMeasurementUnit : measurementUnit).trim()
+
+    if (!itemName.trim() || !resolvedItemType || !resolvedMeasurementUnit) {
       setError('All fields are required')
       return
     }
@@ -41,8 +56,8 @@ function ItemFormModal({ item, onClose, onSave }: Props) {
 
     onSave({
       itemName: itemName.trim(),
-      itemType: itemType.trim(),
-      measurementUnit: measurementUnit.trim(),
+      itemType: resolvedItemType,
+      measurementUnit: resolvedMeasurementUnit.toUpperCase(),
       startingStock: startingNum,
       lowStockThreshold: thresholdNum,
     })
@@ -91,24 +106,50 @@ function ItemFormModal({ item, onClose, onSave }: Props) {
 
           <div>
             <label className="block font-[Archivo] text-sm font-semibold text-[#171a1f] mb-2">Item Type</label>
-            <input
-              type="text"
+            <select
               value={itemType}
               onChange={e => setItemType(e.target.value)}
-              className="w-full h-11 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
-              placeholder="e.g. Packaging, Condiment, Ingredient"
-            />
+              className="w-full h-11 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8] bg-white"
+            >
+              <option value="" disabled>Select a type...</option>
+              {ITEM_TYPE_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+              <option value={OTHER}>Other...</option>
+            </select>
+            {itemType === OTHER && (
+              <input
+                type="text"
+                value={customItemType}
+                onChange={e => setCustomItemType(e.target.value)}
+                className="w-full h-11 px-3 mt-2 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
+                placeholder="Enter a new item type"
+              />
+            )}
           </div>
 
           <div>
             <label className="block font-[Archivo] text-sm font-semibold text-[#171a1f] mb-2">Measurement Unit</label>
-            <input
-              type="text"
+            <select
               value={measurementUnit}
               onChange={e => setMeasurementUnit(e.target.value)}
-              className="w-full h-11 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
-              placeholder="e.g. PCS, PACKS, BOTTLES"
-            />
+              className="w-full h-11 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8] bg-white"
+            >
+              <option value="" disabled>Select a unit...</option>
+              {MEASUREMENT_UNIT_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+              <option value={OTHER}>Other...</option>
+            </select>
+            {measurementUnit === OTHER && (
+              <input
+                type="text"
+                value={customMeasurementUnit}
+                onChange={e => setCustomMeasurementUnit(e.target.value)}
+                className="w-full h-11 px-3 mt-2 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
+                placeholder="Enter a new unit, e.g. TRAYS"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
