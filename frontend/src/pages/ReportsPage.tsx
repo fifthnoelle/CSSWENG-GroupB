@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
+import NotificationBell from '../components/NotificationBell'
 import { getMonthlySummary, getInactiveItems } from '../services/reports.service'
 import type { MonthlySummaryItem, InactiveItem } from '../services/reports.service'
 
@@ -92,6 +93,7 @@ function ReportsPage() {
           <div className="flex-1">
             <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f]">Reports</h1>
           </div>
+          <NotificationBell />
         </header>
 
         {/* Content */}
