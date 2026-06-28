@@ -10,7 +10,7 @@ export interface NavItem {
 }
 
 interface SidebarProps {
-  user: { firstName: string; lastName: string; role: string }
+  user: { firstName: string; lastName: string; role: string; lastLoginAt?: string | null; lastLoginStatus?: 'success' | 'failed' | null }
   navItems: NavItem[]
 }
 
@@ -77,6 +77,12 @@ function Sidebar({ user, navItems }: SidebarProps) {
       <div className="relative p-2 lg:p-3 border-t border-[#dee1e6]">
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 lg:left-3 lg:right-3 mb-1 bg-white border border-[#dee1e6] rounded-md shadow-lg overflow-hidden">
+            {/* 2.1.11 — report the last use of this account to the user themself */}
+            {user.lastLoginAt && (
+              <div className="px-3 py-2 text-[11px] font-[Archivo] text-[#9095a0] border-b border-[#dee1e6]">
+                Last {user.lastLoginStatus === 'failed' ? 'attempt' : 'login'}: {new Date(user.lastLoginAt).toLocaleString()}
+              </div>
+            )}
             <button
               onClick={() => { setMenuOpen(false); setShowChangePassword(true) }}
               className="w-full text-left px-3 py-2 text-sm font-[Archivo] font-medium text-[#171a1f] hover:bg-gray-50 transition-colors cursor-pointer"
