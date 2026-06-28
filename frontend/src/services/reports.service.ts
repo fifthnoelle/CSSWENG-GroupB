@@ -15,6 +15,8 @@ export interface MonthlySummaryItem {
 
 export interface MonthlySummaryResponse {
   month: string
+  startDate: string
+  endDate: string
   items: MonthlySummaryItem[]
 }
 
@@ -27,6 +29,11 @@ export interface InactiveItem {
 }
 
 async function parseError(res: Response, fallback: string) {
+  if (res.status === 401) {
+    // Session expired server-side while the frontend still thought it was logged in.
+    // Bounce to login instead of leaving a dead error on screen.
+    window.location.href = '/login'
+  }
   try {
     const body = await res.json()
     return body?.error || body?.message || fallback
@@ -35,10 +42,18 @@ async function parseError(res: Response, fallback: string) {
   }
 }
 
-export async function getMonthlySummary(month?: string): Promise<MonthlySummaryResponse> {
-  const params = month ? `?month=${month}` : ''
-  const res = await fetch(`${BASE_URL}/reports/monthly-summary${params}`, { credentials: 'include' })
-  if (!res.ok) throw new Error(await parseError(res, 'Failed to fetch monthly summary'))
+export async function getMonthlySummary(
+  params: { month?: string; startDate?: string; endDate?: string } = {}
+): Promise<MonthlySummaryResponse> {
+  const query = new URLSearchParams()
+  if (params.startDate && params.endDate) {
+    query.set('startDate', params.startDate)
+    query.set('endDate', params.endDate)
+  } else if (params.month) {
+    query.set('month', params.month)
+  }
+  const res = await fetch(`${BASE_URL}/reports/monthly-summary?${query.toString()}`, { credentials: 'include' })
+  if (!res.ok) throw new Error(await parseError(res, 'Failed to fetch summary'))
   return res.json()
 }
 
