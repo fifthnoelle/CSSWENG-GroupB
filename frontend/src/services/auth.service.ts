@@ -38,3 +38,26 @@ export async function logout() {
     credentials: 'include',
   })
 }
+
+// 2.1.12 — self-service password change, re-authenticated server-side with currentPassword
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const res = await fetch(`${BASE_URL}/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to change password'
+    try {
+      const errorBody = await res.json()
+      if (errorBody?.error) errorMessage = errorBody.error
+    } catch {
+      // ignore invalid JSON body
+    }
+    throw new Error(errorMessage)
+  }
+
+  return res.json()
+}
