@@ -105,21 +105,21 @@ function LogsPage() {
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto min-h-0">
 
           <div className="mb-6">
-            <h2 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Audit Trail</h2>
-            <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">
+            <h2 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] dark:text-[#f3f4f6] tracking-tight">Audit Trail</h2>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">
               Every inventory and account change, tied to who made it and when.
             </p>
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 mb-5">
-            <div className="flex bg-[#f3f4f6] rounded-md p-1 gap-1">
+            <div className="flex bg-[#f3f4f6] dark:bg-white/5 rounded-md p-1 gap-1">
               {(['', 'inventory', 'accounts'] as const).map(opt => (
                 <button
                   key={opt || 'all'}
                   onClick={() => handleFilterChange(opt)}
                   className={`px-3 h-8 rounded text-sm font-bold font-[Inter] transition-colors ${
-                    logType === opt ? 'bg-white text-[#323842] shadow-sm' : 'text-[#9095a0]'
+                    logType === opt ? 'bg-white dark:bg-[#1f2128] text-[#323842] dark:text-[#e5e7eb] shadow-sm' : 'text-[#9095a0]'
                   }`}
                 >
                   {opt === '' ? 'All' : opt === 'inventory' ? 'Inventory' : 'Accounts'}
@@ -129,41 +129,41 @@ function LogsPage() {
 
             <button
               onClick={() => setSort(s => (s === 'desc' ? 'asc' : 'desc'))}
-              className="flex items-center gap-2 px-3 h-9 bg-white border border-[#dee1e6] rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
             >
-              <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">
+              <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">
                 {sort === 'desc' ? 'Newest first' : 'Oldest first'}
               </span>
             </button>
 
-            <span className="font-[Archivo] text-xs text-[#9095a0] ml-auto">
+            <span className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280] ml-auto">
               {total} {total === 1 ? 'entry' : 'entries'}
             </span>
           </div>
 
           {/* Loading / error states */}
           {loading && (
-            <p className="font-[Archivo] text-sm text-[#565e6c]">Loading logs...</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">Loading logs...</p>
           )}
           {!loading && error && (
             <p className="font-[Archivo] text-sm text-[#BE123C]">{error}</p>
           )}
           {!loading && !error && logs.length === 0 && (
-            <p className="font-[Archivo] text-sm text-[#565e6c]">No activity recorded yet.</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No activity recorded yet.</p>
           )}
 
           {/* Table */}
           {!loading && !error && logs.length > 0 && (
-            <div className="border border-[#dee1e6] rounded-xl overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-[#f3f4f6]/60">
+            <div className="border border-[#dee1e6] dark:border-white/10 rounded-xl overflow-x-auto">
+              <table className="w-full text-left min-w-[640px]">
+                <thead className="bg-[#f3f4f6]/60 dark:bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">Date</th>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">User</th>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">Action</th>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">Target</th>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">Change</th>
-                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c]">Notes</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Date</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">User</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Action</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Target</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Change</th>
+                    <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,23 +175,23 @@ function LogsPage() {
                     const hasStockChange = log.logType === 'inventory' &&
                       (log.actionType === 'used-today' || log.actionType === 'restock')
                     return (
-                      <tr key={log._id} className="border-t border-[#dee1e6]">
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] whitespace-nowrap">
+                      <tr key={log._id} className="border-t border-[#dee1e6] dark:border-white/10">
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] whitespace-nowrap">
                           {formatDate(log.actionTime)}
                         </td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f]">{log.userName}</td>
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{log.userName}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs font-semibold font-[Archivo] px-2.5 py-1 rounded-full ${badge.bg} ${badge.text} whitespace-nowrap`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f]">{target || '—'}</td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] whitespace-nowrap">
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{target || '—'}</td>
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] whitespace-nowrap">
                           {hasStockChange
                             ? `${log.previousStock} → ${log.newStock} ${log.measurementUnit}`
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] max-w-[260px] truncate">
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] max-w-[260px] truncate">
                           {log.notes || '—'}
                         </td>
                       </tr>
@@ -208,15 +208,15 @@ function LogsPage() {
               <button
                 onClick={() => setPage(p => Math.max(p - 1, 1))}
                 disabled={page <= 1}
-                className="h-9 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="h-9 px-3 border border-[#dee1e6] dark:border-white/10 rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] bg-white dark:bg-[#1f2128] hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
-              <span className="font-[Archivo] text-sm text-[#565e6c]">Page {page} of {totalPages}</span>
+              <span className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">Page {page} of {totalPages}</span>
               <button
                 onClick={() => setPage(p => Math.min(p + 1, totalPages))}
                 disabled={page >= totalPages}
-                className="h-9 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="h-9 px-3 border border-[#dee1e6] dark:border-white/10 rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] bg-white dark:bg-[#1f2128] hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
