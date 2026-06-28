@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { login} from '../services/auth.service'
 import { useUser } from '../context/UserContext'
 //import type { User } from '../types'
@@ -110,9 +110,9 @@ function Login() {
           )}
 
           <div className="text-right -mt-2">
-            <span className="text-sm font-bold font-[Archivo] text-[#93191d] cursor-pointer">
+            <Link to="/forgot-password" className="text-sm font-bold font-[Archivo] text-[#93191d] cursor-pointer hover:underline">
               Forgot Password?
-            </span>
+            </Link>
           </div>
 
           <button
