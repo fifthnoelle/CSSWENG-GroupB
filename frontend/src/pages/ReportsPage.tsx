@@ -46,6 +46,7 @@ function ReportsPage() {
   const [inactiveItems, setInactiveItems] = useState<InactiveItem[]>([])
   const [inactiveLoading, setInactiveLoading] = useState(true)
   const [inactiveError, setInactiveError] = useState('')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const loadSummary = useCallback(async () => {
     setLoading(true)
@@ -82,16 +83,23 @@ function ReportsPage() {
   useEffect(() => { loadInactive() }, [loadInactive])
 
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} />
+      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
         {/* Header */}
-        <header className="h-16 border-b border-[#dee1e6] flex items-center px-4 gap-3 shrink-0 bg-white z-10">
+        <header className="h-16 border-b border-[#dee1e6] dark:border-white/10 flex items-center px-4 gap-3 shrink-0 bg-white dark:bg-[#14151a] z-10">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5 text-[#171a1f] dark:text-[#e5e7eb]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
           <div className="flex-1">
-            <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f]">Reports</h1>
+            <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f] dark:text-[#f3f4f6]">Reports</h1>
           </div>
           <NotificationBell />
         </header>
