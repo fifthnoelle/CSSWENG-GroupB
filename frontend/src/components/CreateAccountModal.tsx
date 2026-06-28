@@ -22,10 +22,12 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [email, setEmail]           = useState('')
   const [userId, setUserId]         = useState('')
   const [password, setPassword]     = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole]             = useState<'admin' | 'staff'>('staff')
   const [securityQuestion, setSecurityQuestion] = useState('')
   const [securityAnswer, setSecurityAnswer]     = useState('')
   const [passwordTouched, setPasswordTouched]   = useState(false)
+  const [confirmTouched, setConfirmTouched]     = useState(false)
   const [answerTouched, setAnswerTouched]       = useState(false)
 
   // Mirrors the backend policy in utils/auth.js — checked live so the user
@@ -38,14 +40,16 @@ function CreateAccountModal({ onClose, onSave }: Props) {
     { label: 'A special character',     met: /[^A-Za-z0-9]/.test(password) },
   ]
   const passwordValid = passwordRules.every(r => r.met)
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
   const answerValid = securityAnswer.trim().length >= 4
 
   function handleCreate() {
     setPasswordTouched(true)
+    setConfirmTouched(true)
     setAnswerTouched(true)
     if (
       !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
-      !passwordValid || !securityQuestion.trim() || !answerValid
+      !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
     ) return
     onSave({
       firstName: firstName.trim(),
@@ -170,6 +174,26 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             )}
           </div>
 
+          {/* Confirm Password */}
+          <div>
+            <label className={labelClass}>Confirm Password</label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              onBlur={() => setConfirmTouched(true)}
+              placeholder="••••••••"
+              className={`${inputClass} ${confirmTouched && !passwordsMatch ? 'border-[#FECDD3]' : ''}`}
+            />
+            {confirmTouched && !passwordsMatch && (
+              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C]">
+                Passwords do not match.
+              </p>
+            )}
+          </div>
+
           {/* User ID + Role */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -257,7 +281,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             onClick={handleCreate}
             disabled={
               !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
-              !passwordValid || !securityQuestion.trim() || !answerValid
+              !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
             }
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
