@@ -25,11 +25,27 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [role, setRole]             = useState<'admin' | 'staff'>('staff')
   const [securityQuestion, setSecurityQuestion] = useState('')
   const [securityAnswer, setSecurityAnswer]     = useState('')
+  const [passwordTouched, setPasswordTouched]   = useState(false)
+  const [answerTouched, setAnswerTouched]       = useState(false)
+
+  // Mirrors the backend policy in utils/auth.js — checked live so the user
+  // never has to round-trip to the server to find out a rule was unmet.
+  const passwordRules = [
+    { label: 'At least 12 characters', met: password.length >= 12 },
+    { label: 'A lowercase letter',      met: /[a-z]/.test(password) },
+    { label: 'An uppercase letter',     met: /[A-Z]/.test(password) },
+    { label: 'A number',                met: /[0-9]/.test(password) },
+    { label: 'A special character',     met: /[^A-Za-z0-9]/.test(password) },
+  ]
+  const passwordValid = passwordRules.every(r => r.met)
+  const answerValid = securityAnswer.trim().length >= 4
 
   function handleCreate() {
+    setPasswordTouched(true)
+    setAnswerTouched(true)
     if (
       !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
-      !password.trim() || !securityQuestion.trim() || !securityAnswer.trim()
+      !passwordValid || !securityQuestion.trim() || !answerValid
     ) return
     onSave({
       firstName: firstName.trim(),
@@ -133,9 +149,25 @@ function CreateAccountModal({ onClose, onSave }: Props) {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              onBlur={() => setPasswordTouched(true)}
               placeholder="••••••••"
-              className={inputClass}
+              className={`${inputClass} ${passwordTouched && !passwordValid ? 'border-[#FECDD3]' : ''}`}
             />
+            {(passwordTouched || password.length > 0) && (
+              <ul className="mt-2 flex flex-col gap-0.5">
+                {passwordRules.map(rule => (
+                  <li
+                    key={rule.label}
+                    className={`text-xs font-[Archivo] flex items-center gap-1.5 ${
+                      rule.met ? 'text-[#047857]' : 'text-[#9095a0]'
+                    }`}
+                  >
+                    <span>{rule.met ? '✓' : '○'}</span>
+                    {rule.label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* User ID + Role */}
@@ -197,12 +229,19 @@ function CreateAccountModal({ onClose, onSave }: Props) {
               type="text"
               value={securityAnswer}
               onChange={e => setSecurityAnswer(e.target.value)}
+              onBlur={() => setAnswerTouched(true)}
               placeholder="Only this user should know the answer"
-              className={inputClass}
+              className={`${inputClass} ${answerTouched && !answerValid ? 'border-[#FECDD3]' : ''}`}
             />
-            <p className="mt-1 text-xs font-[Archivo] text-[#9095a0]">
-              Pick a question with a unique, hard-to-guess answer — avoid common ones like "favorite color."
-            </p>
+            {answerTouched && !answerValid ? (
+              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C]">
+                Security answer must be at least 4 characters long.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs font-[Archivo] text-[#9095a0]">
+                Pick a question with a unique, hard-to-guess answer — avoid common ones like "favorite color."
+              </p>
+            )}
           </div>
         </div>
 
@@ -218,7 +257,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             onClick={handleCreate}
             disabled={
               !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
-              !password.trim() || !securityQuestion.trim() || !securityAnswer.trim()
+              !passwordValid || !securityQuestion.trim() || !answerValid
             }
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
