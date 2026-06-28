@@ -101,6 +101,7 @@ function AdminInventory() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
@@ -181,20 +182,27 @@ function AdminInventory() {
   }
 
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} />
+      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
         {/* Header */}
-        <header className="h-16 border-b border-[#dee1e6] flex items-center px-4 gap-3 shrink-0 bg-white z-10">
-          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 rounded-md">
-            <img className="w-4 h-4 shrink-0" src="/assets/icon-search.svg" alt="search" />
+        <header className="h-16 border-b border-[#dee1e6] dark:border-white/10 flex items-center px-4 gap-3 shrink-0 bg-white dark:bg-[#14151a] z-10">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5 text-[#171a1f] dark:text-[#e5e7eb]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 dark:bg-white/5 rounded-md">
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-search.svg" alt="search" />
             <input
               type="text"
               placeholder="Search ingredient..."
-              className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
+              className="flex-1 text-sm font-[Archivo] text-[#565e6c] dark:text-[#d1d5db] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-transparent"
             />
           </div>
           <NotificationBell />
