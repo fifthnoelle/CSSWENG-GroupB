@@ -9,6 +9,7 @@ import AdminInventory from './pages/AdminInventory'
 import AccountManager from './pages/AccountManager'
 import LogsPage from './pages/LogsPage'
 import ReportsPage from './pages/ReportsPage'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -60,6 +61,9 @@ function App() {
           />
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
+
+          {/* Catch-all — any unknown path renders a proper 404 instead of a blank screen */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </UserProvider>
     </BrowserRouter>
