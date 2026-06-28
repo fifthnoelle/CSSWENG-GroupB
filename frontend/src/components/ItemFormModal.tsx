@@ -14,30 +14,23 @@ interface Props {
 }
 
 // Predefined option sets, drawn from the item types/units already seen in
-// inventory data. "Other" reveals a free-text field for anything new.
+// inventory data. Selection is strictly limited to these — no manual typing.
 const ITEM_TYPE_OPTIONS = ['Packaging', 'Condiment', 'Ingredient', 'Utensil']
 const MEASUREMENT_UNIT_OPTIONS = ['PCS', 'PACKS', 'BOTTLES', 'GALLONS', 'KGS', 'BOXES']
-
-const OTHER = '__other__'
 
 function ItemFormModal({ item, onClose, onSave }: Props) {
   const isEdit = !!item
 
-  const initialTypeIsKnown = !item?.itemType || ITEM_TYPE_OPTIONS.includes(item.itemType)
-  const initialUnitIsKnown = !item?.measurementUnit || MEASUREMENT_UNIT_OPTIONS.includes(item.measurementUnit)
-
   const [itemName, setItemName] = useState(item?.itemName ?? '')
-  const [itemType, setItemType] = useState(initialTypeIsKnown ? (item?.itemType ?? '') : OTHER)
-  const [customItemType, setCustomItemType] = useState(initialTypeIsKnown ? '' : (item?.itemType ?? ''))
-  const [measurementUnit, setMeasurementUnit] = useState(initialUnitIsKnown ? (item?.measurementUnit ?? '') : OTHER)
-  const [customMeasurementUnit, setCustomMeasurementUnit] = useState(initialUnitIsKnown ? '' : (item?.measurementUnit ?? ''))
+  const [itemType, setItemType] = useState(item?.itemType ?? '')
+  const [measurementUnit, setMeasurementUnit] = useState(item?.measurementUnit ?? '')
   const [startingStock, setStartingStock] = useState(String(item?.startingStock ?? ''))
   const [lowStockThreshold, setLowStockThreshold] = useState(String(item?.lowStockThreshold ?? ''))
   const [error, setError] = useState('')
 
   function handleSave() {
-    const resolvedItemType = (itemType === OTHER ? customItemType : itemType).trim()
-    const resolvedMeasurementUnit = (measurementUnit === OTHER ? customMeasurementUnit : measurementUnit).trim()
+    const resolvedItemType = itemType.trim()
+    const resolvedMeasurementUnit = measurementUnit.trim()
 
     if (!itemName.trim() || !resolvedItemType || !resolvedMeasurementUnit) {
       setError('All fields are required')
@@ -115,17 +108,7 @@ function ItemFormModal({ item, onClose, onSave }: Props) {
               {ITEM_TYPE_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
-              <option value={OTHER}>Other...</option>
             </select>
-            {itemType === OTHER && (
-              <input
-                type="text"
-                value={customItemType}
-                onChange={e => setCustomItemType(e.target.value)}
-                className="w-full h-11 px-3 mt-2 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
-                placeholder="Enter a new item type"
-              />
-            )}
           </div>
 
           <div>
@@ -139,17 +122,7 @@ function ItemFormModal({ item, onClose, onSave }: Props) {
               {MEASUREMENT_UNIT_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
-              <option value={OTHER}>Other...</option>
             </select>
-            {measurementUnit === OTHER && (
-              <input
-                type="text"
-                value={customMeasurementUnit}
-                onChange={e => setCustomMeasurementUnit(e.target.value)}
-                className="w-full h-11 px-3 mt-2 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] outline-none focus:border-[#636AE8]"
-                placeholder="Enter a new unit, e.g. TRAYS"
-              />
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
