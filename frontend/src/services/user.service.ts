@@ -17,7 +17,16 @@ export async function createUser(data: { email: string, firstName: string, lastN
         body: JSON.stringify(data),
         credentials: 'include', 
     })
-    if (!res.ok) throw new Error('Failed to create user')
+    if (!res.ok) {
+        let errorMessage = 'Failed to create user'
+        try {
+            const errorBody = await res.json()
+            if (errorBody?.error) errorMessage = errorBody.error
+        } catch {
+            // ignore invalid JSON body
+        }
+        throw new Error(errorMessage)
+    }
     return res.json()
 }
 
