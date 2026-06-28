@@ -16,7 +16,6 @@ function Login() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [lastLoginNotice, setLastLoginNotice] = useState<string | null>(null)
 
   const handleLogin = async () => {
     setError(null)
@@ -25,17 +24,6 @@ function Login() {
     try {
       const authResult = await authenticate(email, password)
       await refreshUser()
-
-      // 2.1.11 — report the last use (successful or failed) of this account
-      const prev = authResult?.previousLogin
-      if (prev?.lastLoginAt) {
-        const when = new Date(prev.lastLoginAt).toLocaleString()
-        const status = prev.lastLoginStatus === 'failed' ? 'failed attempt' : 'successful login'
-        setLastLoginNotice(`Last ${status} on this account: ${when}${prev.lastLoginIp ? ` from ${prev.lastLoginIp}` : ''}`)
-        // Brief pause so the user actually sees the notice before navigating away
-        await new Promise(resolve => setTimeout(resolve, 1800))
-      }
-
       if (authResult.role === 'admin') {
         navigate('/admin/inventory')
       } else {
@@ -114,12 +102,6 @@ function Login() {
               />
             </div>
           </div>
-
-          {lastLoginNotice && (
-            <div className="bg-[#eef2ff] border border-[#c7d2fe] text-[#363f9c] text-sm font-[Archivo] rounded-md px-3 py-2">
-              {lastLoginNotice}
-            </div>
-          )}
 
           {error && (
             <div className="text-sm text-[#93191d] font-[Inter]">
