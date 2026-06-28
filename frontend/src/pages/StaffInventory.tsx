@@ -1,28 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
 import Sidebar from '../components/Sidebar'
+import { getInventory, updateStock as updateStockApi } from '../services/inventory.service'
 
 const staffNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/inventory' },
 ]
 
 const staffUser = { firstName: 'James', lastName: 'Reyes', role: 'Staff' }
-
-// ── Static seed data (replace with getInventory() call from inventory.service.ts) ──
-const seedItems: InventoryItem[] = [
-  { _id: '1',  itemName: 'Wooden Toothpicks', itemType: 'Packaging',  measurementUnit: 'PACKS',   startingStock: 50,   currentStock: 44,  lowStockThreshold: 10,  createdBy: '', createdAt: '' },
-  { _id: '2',  itemName: 'Tupperwares',        itemType: 'Packaging',  measurementUnit: 'PCS',     startingStock: 200,  currentStock: 53,  lowStockThreshold: 60,  createdBy: '', createdAt: '' },
-  { _id: '3',  itemName: 'Bottle Sauces',      itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 100,  currentStock: 0,   lowStockThreshold: 10,  createdBy: '', createdAt: '' },
-  { _id: '4',  itemName: 'Burger Boxes',       itemType: 'Packaging',  measurementUnit: 'PCS',     startingStock: 500,  currentStock: 320, lowStockThreshold: 50,  createdBy: '', createdAt: '' },
-  { _id: '5',  itemName: 'Napkins',            itemType: 'Packaging',  measurementUnit: 'PACKS',   startingStock: 50,   currentStock: 20,  lowStockThreshold: 25,  createdBy: '', createdAt: '' },
-  { _id: '6',  itemName: 'Soy Sauce',          itemType: 'Condiment',  measurementUnit: 'GALLONS', startingStock: 10,   currentStock: 8,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '7',  itemName: 'Chopsticks',         itemType: 'Utensil',    measurementUnit: 'PCS',     startingStock: 1000, currentStock: 0,   lowStockThreshold: 100, createdBy: '', createdAt: '' },
-  { _id: '8',  itemName: 'Chicken',            itemType: 'Ingredient', measurementUnit: 'KGS',     startingStock: 15,   currentStock: 10,  lowStockThreshold: 3,   createdBy: '', createdAt: '' },
-  { _id: '9',  itemName: 'Orange Sauce',       itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 10,   currentStock: 7,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '10', itemName: 'Buffalo Sauce',      itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 7,    currentStock: 5,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-  { _id: '11', itemName: 'Barbeque Sauce',     itemType: 'Condiment',  measurementUnit: 'BOTTLES', startingStock: 5,    currentStock: 4,   lowStockThreshold: 2,   createdBy: '', createdAt: '' },
-]
 
 const statusConfig: Record<StockStatus, { label: string; bg: string; border: string; text: string }> = {
   'in-stock':     { label: 'IN STOCK',     bg: 'bg-[#D1FAE5]', border: 'border-[#A7F3D0]', text: 'text-[#047857]' },
@@ -70,22 +56,42 @@ function InventoryCard({ item, onAddClick }: { item: InventoryItem; onAddClick: 
 }
 
 function Inventory() {
-  const [items, setItems] = useState<InventoryItem[]>(seedItems)
+  const [items, setItems] = useState<InventoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
-  function handleSave(actionType: ActionType, quantityChanged: number) {
+  async function loadItems() {
+    setLoading(true)
+    setLoadError('')
+    try {
+      const data = await getInventory()
+      setItems(data)
+    } catch (err) {
+      console.error('Failed to load inventory:', err)
+      setLoadError('Failed to load inventory. Please try refreshing.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadItems()
+  }, [])
+
+  async function handleSave(actionType: ActionType, quantityChanged: number) {
     if (!selectedItem) return
-    setItems(prev => prev.map(i => {
-      if (i._id !== selectedItem._id) return i
-      const newStock = actionType === 'used-today'
-        ? i.currentStock - quantityChanged
-        : i.currentStock + quantityChanged
-      return { ...i, currentStock: Math.max(0, newStock) }
-    }))
-    // TODO: call updateStock(selectedItem._id, actionType, quantityChanged) from inventory.service.ts
+    try {
+      const result = await updateStockApi(selectedItem._id, actionType as 'used-today' | 'restock', quantityChanged)
+      setItems(prev => prev.map(i => (i._id === selectedItem._id ? result.item : i)))
+    } catch (err) {
+      console.error('Failed to update stock:', err)
+      alert(err instanceof Error ? err.message : 'Failed to update stock. Please try again.')
+    }
   }
 
   return (
@@ -107,11 +113,57 @@ function Inventory() {
             />
           </div>
           <div className="relative shrink-0">
-            <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
+            <button
+              onClick={() => setShowNotifDropdown(o => !o)}
+              className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
+            </button>
             {lowCount > 0 && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center">
+              <div className="absolute top-0 right-0 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center pointer-events-none">
                 <span className="font-[Archivo] text-white text-[10px]">{lowCount}</span>
               </div>
+            )}
+
+            {showNotifDropdown && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowNotifDropdown(false)} />
+                <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-[#dee1e6] rounded-xl shadow-lg z-20 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#dee1e6]">
+                    <p className="font-[Archivo] text-sm font-bold text-[#171a1f]">Notifications</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {lowCount === 0 && (
+                      <p className="px-4 py-6 text-center font-[Archivo] text-sm text-[#9095a0]">
+                        All items are sufficiently stocked.
+                      </p>
+                    )}
+                    {items.filter(i => getStatus(i) !== 'in-stock').map(item => {
+                      const s = statusConfig[getStatus(item)]
+                      return (
+                        <button
+                          key={item._id}
+                          onClick={() => {
+                            setSelectedItem(item)
+                            setShowNotifDropdown(false)
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-[#dee1e6] last:border-b-0 hover:bg-gray-50 text-left transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] truncate">{item.itemName}</p>
+                            <p className="font-[Archivo] text-xs text-[#565e6c] mt-0.5">
+                              {item.currentStock} {item.measurementUnit} remaining
+                            </p>
+                          </div>
+                          <span className={`shrink-0 text-[10px] font-semibold font-[Archivo] px-2.5 py-1 rounded-full border ${s.bg} ${s.border} ${s.text} whitespace-nowrap`}>
+                            {s.label}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
             )}
           </div>
           <div className="md:hidden w-8 h-8 rounded-full bg-[#d3f9e0] flex items-center justify-center shrink-0">
@@ -155,12 +207,22 @@ function Inventory() {
             </div>
           </div>
 
+          {/* Loading / error states */}
+          {loading && (
+            <p className="font-[Archivo] text-sm text-[#565e6c]">Loading inventory...</p>
+          )}
+          {!loading && loadError && (
+            <p className="font-[Archivo] text-sm text-[#BE123C]">{loadError}</p>
+          )}
+
           {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {items.map(item => (
-              <InventoryCard key={item._id} item={item} onAddClick={() => setSelectedItem(item)} />
-            ))}
-          </div>
+          {!loading && !loadError && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {items.map(item => (
+                <InventoryCard key={item._id} item={item} onAddClick={() => setSelectedItem(item)} />
+              ))}
+            </div>
+          )}
         </main>
       </div>
 
