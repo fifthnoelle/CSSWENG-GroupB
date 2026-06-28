@@ -8,6 +8,10 @@ export interface User {
   role: 'admin' | 'staff'
   lockedUntil?: string | null
   createdAt: string
+  // 2.1.11 — last use (successful or failed) of this account
+  lastLoginAt?: string | null
+  lastLoginStatus?: 'success' | 'failed' | null
+  lastLoginIp?: string
 }
 
 export interface UserContextType {
