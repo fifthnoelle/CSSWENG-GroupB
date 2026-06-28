@@ -32,6 +32,49 @@ export async function getUser() {
   return res.json()
 }
 
+// 2.1.8 — password recovery step 1: fetch the account's security question
+export async function getSecurityQuestion(email: string): Promise<{ question: string }> {
+  const res = await fetch(`${BASE_URL}/forgot-password/question`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+
+  if (!res.ok) {
+    let errorMessage = 'Unable to find a security question for that email'
+    try {
+      const errorBody = await res.json()
+      if (errorBody?.error) errorMessage = errorBody.error
+    } catch {
+      // ignore invalid JSON body
+    }
+    throw new Error(errorMessage)
+  }
+
+  return res.json()
+}
+
+// 2.1.8 / 2.1.9 — password recovery step 2: verify the answer and set a new password
+export async function resetPasswordWithAnswer(email: string, securityAnswer: string, newPassword: string) {
+  const res = await fetch(`${BASE_URL}/forgot-password/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, securityAnswer, newPassword }),
+  })
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to reset password'
+    try {
+      const errorBody = await res.json()
+      if (errorBody?.error) errorMessage = errorBody.error
+    } catch {
+      // ignore invalid JSON body
+    }
+    throw new Error(errorMessage)
+  }
+
+  return res.json()
+}
 export async function logout() {
   await fetch(`${BASE_URL}/logout`, {
     method: 'POST',
