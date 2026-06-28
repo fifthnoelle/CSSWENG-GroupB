@@ -195,7 +195,7 @@ function AccountManager() {
       setUsers(refreshed)
     } catch (err) {
       console.error('Failed to create user:', err)
-      alert('Failed to create user. The email may already be in use.')
+      alert(err instanceof Error ? err.message : 'Failed to create user. The email may already be in use.')
     }
   }
 
