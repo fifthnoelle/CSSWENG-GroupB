@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
+import NotificationBell from '../components/NotificationBell'
 import { getLogs } from '../services/logs.service'
 import type { Log } from '../types'
 
@@ -89,6 +90,7 @@ function LogsPage() {
           <div className="flex-1">
             <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f]">Activity Logs</h1>
           </div>
+          <NotificationBell />
         </header>
 
         {/* Content */}
