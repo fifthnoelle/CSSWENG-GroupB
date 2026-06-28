@@ -63,9 +63,24 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
+// 2.1.8 — security answers just need a sane minimum length; we deliberately
+// don't impose a stock list of questions (those tend to be low-entropy —
+// "favorite book" -> "The Bible"). The question is user-authored instead.
+const MIN_SECURITY_ANSWER_LENGTH = 4;
+const validateSecurityAnswer = (answer) => {
+    if (typeof answer !== "string" || answer.trim().length < MIN_SECURITY_ANSWER_LENGTH) {
+        return `Security answer must be at least ${MIN_SECURITY_ANSWER_LENGTH} characters long.`;
+    }
+    if (answer.length > 200) {
+        return "Security answer is too long.";
+    }
+    return null;
+};
+
 module.exports = {
     hashPassword,
     validatePasswordPolicy,
+    validateSecurityAnswer,
     PASSWORD_MIN_LENGTH,
     requireAuth,
     requireAdmin
