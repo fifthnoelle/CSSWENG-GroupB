@@ -26,30 +26,30 @@ function getStatus(item: InventoryItem): StockStatus {
 function InventoryCard({ item, onAddClick }: { item: InventoryItem; onAddClick: () => void }) {
   const s = statusConfig[getStatus(item)]
   return (
-    <div className="bg-white rounded-2xl border border-[#dee1e6] shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] flex flex-col">
+    <div className="bg-white dark:bg-[#1f2128] rounded-2xl border border-[#dee1e6] dark:border-white/10 shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] flex flex-col">
       <div className="p-4 flex-1">
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="min-w-0">
-            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] leading-5 truncate">{item.itemName}</p>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0] leading-4">{item.itemType}</p>
+            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] dark:text-[#e5e7eb] leading-5 truncate">{item.itemName}</p>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280] leading-4">{item.itemType}</p>
           </div>
           <span className={`shrink-0 text-[10px] font-semibold font-[Archivo] px-2.5 py-1 rounded-full border ${s.bg} ${s.border} ${s.text} whitespace-nowrap`}>
             {s.label}
           </span>
         </div>
         <div className="mt-3">
-          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f]">Starting Stock</p>
-          <p className="font-[Archivo] text-xs text-[#323842] mt-0.5">{item.startingStock} {item.measurementUnit}</p>
+          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f] dark:text-[#e5e7eb]">Starting Stock</p>
+          <p className="font-[Archivo] text-xs text-[#323842] dark:text-[#9095a0] mt-0.5">{item.startingStock} {item.measurementUnit}</p>
         </div>
-        <div className="border-t border-[#dee1e6] my-3" />
+        <div className="border-t border-[#dee1e6] dark:border-white/10 my-3" />
         <div>
-          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f]">Current Stock</p>
-          <p className="font-[Archivo] text-xs text-[#323842] mt-0.5">{item.currentStock} {item.measurementUnit}</p>
+          <p className="font-[Archivo] text-xs font-semibold text-[#171a1f] dark:text-[#e5e7eb]">Current Stock</p>
+          <p className="font-[Archivo] text-xs text-[#323842] dark:text-[#9095a0] mt-0.5">{item.currentStock} {item.measurementUnit}</p>
         </div>
       </div>
-      <div className="border-t border-[#dee1e6] px-4 py-2 flex items-center justify-center">
-        <button id={`btn-add-stock-${item._id}`} onClick={onAddClick} className="p-1.5 rounded-md hover:bg-gray-100">
-          <img className="w-5 h-5" src="/assets/icon-add-circle.svg" alt="add stock" />
+      <div className="border-t border-[#dee1e6] dark:border-white/10 px-4 py-2 flex items-center justify-center">
+        <button id={`btn-add-stock-${item._id}`} onClick={onAddClick} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/10">
+          <img className="w-5 h-5 dark:invert" src="/assets/icon-add-circle.svg" alt="add stock" />
         </button>
       </div>
     </div>
