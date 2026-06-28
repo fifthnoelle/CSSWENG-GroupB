@@ -10,7 +10,7 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 
-export async function createUser(data: { email: string, firstName: string, lastName: string, password: string, role: 'admin' | 'staff' }) {
+export async function createUser(data: { email: string, firstName: string, lastName: string, password: string, role: 'admin' | 'staff', securityQuestion: string, securityAnswer: string }) {
     const res = await fetch(`${BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
