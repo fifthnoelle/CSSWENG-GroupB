@@ -3,6 +3,7 @@ import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
 import ItemFormModal from '../components/ItemFormModal'
 import Sidebar from '../components/Sidebar'
+import NotificationBell from '../components/NotificationBell'
 import { getInventory, createItem, updateItem, updateStock as updateStockApi, deleteItem as deleteItemApi } from '../services/inventory.service'
 
 const adminNavItems = [
@@ -100,7 +101,6 @@ function AdminInventory() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
@@ -197,60 +197,7 @@ function AdminInventory() {
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
             />
           </div>
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowNotifDropdown(o => !o)}
-              className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <img className="w-5 h-5" src="/assets/icon-bell.svg" alt="notifications" />
-            </button>
-            {lowCount > 0 && (
-              <div className="absolute top-0 right-0 w-4 h-4 bg-[#de3b40] rounded-full flex items-center justify-center pointer-events-none">
-                <span className="font-[Archivo] text-white text-[10px]">{lowCount}</span>
-              </div>
-            )}
-
-            {showNotifDropdown && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowNotifDropdown(false)} />
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-[#dee1e6] rounded-xl shadow-lg z-20 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#dee1e6]">
-                    <p className="font-[Archivo] text-sm font-bold text-[#171a1f]">Notifications</p>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {lowCount === 0 && (
-                      <p className="px-4 py-6 text-center font-[Archivo] text-sm text-[#9095a0]">
-                        All items are sufficiently stocked.
-                      </p>
-                    )}
-                    {items.filter(i => getStatus(i) !== 'in-stock').map(item => {
-                      const s = statusConfig[getStatus(item)]
-                      return (
-                        <button
-                          key={item._id}
-                          onClick={() => {
-                            setSelectedItem(item)
-                            setShowNotifDropdown(false)
-                          }}
-                          className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-[#dee1e6] last:border-b-0 hover:bg-gray-50 text-left transition-colors"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-[Archivo] text-sm font-semibold text-[#171a1f] truncate">{item.itemName}</p>
-                            <p className="font-[Archivo] text-xs text-[#565e6c] mt-0.5">
-                              {item.currentStock} {item.measurementUnit} remaining
-                            </p>
-                          </div>
-                          <span className={`shrink-0 text-[10px] font-semibold font-[Archivo] px-2.5 py-1 rounded-full border ${s.bg} ${s.border} ${s.text} whitespace-nowrap`}>
-                            {s.label}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <NotificationBell />
         </header>
 
         {/* Content */}
