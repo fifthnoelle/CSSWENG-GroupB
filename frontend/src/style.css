@@ -1,6 +1,11 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 html, body {
   overflow-x: hidden;
   width: 100%;
+}
+
+html.dark body {
+  background-color: #14151a;
 }
