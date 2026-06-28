@@ -10,6 +10,8 @@ interface Props {
     userId: string
     password: string
     role: 'admin' | 'staff'
+    securityQuestion: string
+    securityAnswer: string
   }) => void
 }
 
@@ -21,9 +23,14 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [userId, setUserId]         = useState('')
   const [password, setPassword]     = useState('')
   const [role, setRole]             = useState<'admin' | 'staff'>('staff')
+  const [securityQuestion, setSecurityQuestion] = useState('')
+  const [securityAnswer, setSecurityAnswer]     = useState('')
 
   function handleCreate() {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() || !password.trim()) return
+    if (
+      !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
+      !password.trim() || !securityQuestion.trim() || !securityAnswer.trim()
+    ) return
     onSave({
       firstName: firstName.trim(),
       middleName: middleName.trim(),
@@ -32,6 +39,8 @@ function CreateAccountModal({ onClose, onSave }: Props) {
       userId: userId.trim(),
       password: password.trim(),
       role,
+      securityQuestion: securityQuestion.trim(),
+      securityAnswer: securityAnswer.trim(),
     })
     onClose()
   }
@@ -166,6 +175,39 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           </div>
         </div>
 
+        </div>
+
+        {/* Security Question — used for self-service password recovery (2.1.8) */}
+        <div className="px-5 pb-1 flex flex-col gap-4">
+          <div>
+            <label className={labelClass}>Security Question</label>
+            <input
+              id="securityQuestion"
+              name="securityQuestion"
+              type="text"
+              value={securityQuestion}
+              onChange={e => setSecurityQuestion(e.target.value)}
+              placeholder="e.g. What is the name of the first restaurant you worked at?"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Security Answer</label>
+            <input
+              id="securityAnswer"
+              name="securityAnswer"
+              type="text"
+              value={securityAnswer}
+              onChange={e => setSecurityAnswer(e.target.value)}
+              placeholder="Only this user should know the answer"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs font-[Archivo] text-[#9095a0]">
+              Pick a question with a unique, hard-to-guess answer — avoid common ones like "favorite color."
+            </p>
+          </div>
+        </div>
+
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10">
           <button
@@ -176,7 +218,10 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() || !password.trim()}
+            disabled={
+              !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
+              !password.trim() || !securityQuestion.trim() || !securityAnswer.trim()
+            }
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             Create
