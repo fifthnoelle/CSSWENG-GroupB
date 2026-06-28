@@ -41,7 +41,7 @@ function UserCard({
   const isAdmin = user.role === 'admin'
 
   return (
-    <div className="bg-white rounded-2xl border border-[#dee1e6] shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] p-4 relative">
+    <div className="bg-white dark:bg-[#1f2128] rounded-2xl border border-[#dee1e6] dark:border-white/10 shadow-[0px_1px_2.5px_0px_#171a1f12,_0px_0px_2px_0px_#171a1f14] p-4 relative">
 
       {/* Name row */}
       <div className="flex items-start gap-3 mb-3">
@@ -49,11 +49,11 @@ function UserCard({
           <span className={`font-[Archivo] text-sm font-bold ${color.text}`}>{initials}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-[Archivo] text-sm font-bold text-[#171a1f] truncate">
+          <p className="font-[Archivo] text-sm font-bold text-[#171a1f] dark:text-[#e5e7eb] truncate">
             {user.firstName} {user.lastName}
           </p>
           <span className={`inline-block text-[10px] font-semibold font-[Archivo] px-2.5 py-0.5 rounded-full mt-1 ${
-            isAdmin ? 'bg-[#FFE4E6] text-[#93191d]' : 'bg-[#D1FAE5] text-[#047857]'
+            isAdmin ? 'bg-[#FFE4E6] dark:bg-[#7f1d1d] text-[#93191d] dark:text-[#fca5a5]' : 'bg-[#D1FAE5] dark:bg-[#064e3b] text-[#047857] dark:text-[#6ee7b7]'
           }`}>
             {isAdmin ? 'Admin' : 'Staff'}
           </span>
@@ -63,21 +63,21 @@ function UserCard({
         <div className="relative">
           <button
             onClick={() => setMenuOpen(o => !o)}
-            className="p-1 rounded-md hover:bg-gray-100 cursor-pointer"
+            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
           >
-            <img className="w-5 h-5" src="/assets/icon-dots-vertical.svg" alt="menu" />
+            <img className="w-5 h-5 dark:invert" src="/assets/icon-dots-vertical.svg" alt="menu" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-8 w-36 bg-white border border-[#dee1e6] rounded-lg shadow-md z-10 overflow-hidden">
+            <div className="absolute right-0 top-8 w-36 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-lg shadow-md z-10 overflow-hidden">
               <button
                 onClick={() => { setMenuOpen(false); onEditClick() }}
-                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#171a1f] hover:bg-gray-50 cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#171a1f] dark:text-[#e5e7eb] hover:bg-gray-50 dark:hover:bg-white/10 cursor-pointer"
               >
                 Edit Account
               </button>
               <button
                 onClick={() => { setMenuOpen(false); onRemoveClick(); }}
-                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#93191d] hover:bg-[#fff5f5] cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#93191d] dark:text-[#fca5a5] hover:bg-[#fff5f5] dark:hover:bg-white/10 cursor-pointer"
               >
                 Remove Account
               </button>
@@ -86,37 +86,37 @@ function UserCard({
         </div>
       </div>
 
-      <div className="border-t border-[#dee1e6] mb-3" />
+      <div className="border-t border-[#dee1e6] dark:border-white/10 mb-3" />
 
       {/* User details */}
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center gap-2">
-          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-account.svg" alt="user" />
+          <img className="w-4 h-4 shrink-0 opacity-40 dark:invert" src="/assets/icon-account.svg" alt="user" />
           <div>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0]">User ID</p>
-            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">{user._id}</p>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280]">User ID</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] dark:text-[#d1d5db]">{user._id}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-mail.svg" alt="email" />
+          <img className="w-4 h-4 shrink-0 opacity-40 dark:invert" src="/assets/icon-mail.svg" alt="email" />
           <div>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Email</p>
-            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] truncate">{user.email}</p>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280]">Email</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] dark:text-[#d1d5db] truncate">{user.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-calendar.svg" alt="date" />
+          <img className="w-4 h-4 shrink-0 opacity-40 dark:invert" src="/assets/icon-calendar.svg" alt="date" />
           <div>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Created At</p>
-            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">{user.createdAt}</p>
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280]">Created At</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] dark:text-[#d1d5db]">{user.createdAt}</p>
           </div>
         </div>
         {/* 2.1.11 — admins can see last login/attempt for every account */}
         <div className="flex items-center gap-2">
-          <img className="w-4 h-4 shrink-0 opacity-40" src="/assets/icon-account.svg" alt="last login" />
+          <img className="w-4 h-4 shrink-0 opacity-40 dark:invert" src="/assets/icon-account.svg" alt="last login" />
           <div>
-            <p className="font-[Archivo] text-[10px] text-[#9095a0]">Last Login</p>
-            <p className="font-[Archivo] text-xs font-medium text-[#171a1f]">
+            <p className="font-[Archivo] text-[10px] text-[#9095a0] dark:text-[#6b7280]">Last Login</p>
+            <p className="font-[Archivo] text-xs font-medium text-[#171a1f] dark:text-[#d1d5db]">
               {user.lastLoginAt
                 ? `${new Date(user.lastLoginAt).toLocaleString()} (${user.lastLoginStatus === 'failed' ? 'failed attempt' : 'success'})`
                 : 'Never logged in'}
@@ -245,19 +245,19 @@ function AccountManager() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 md:pb-6 overflow-y-auto min-h-0">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto min-h-0">
 
           {/* Title + controls */}
           <div className="flex flex-col gap-3 mb-6">
             <div>
-              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Accounts Management</h1>
-              <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">Create, edit, and manage user accounts.</p>
+              <h1 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] dark:text-[#f3f4f6] tracking-tight">Accounts Management</h1>
+              <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">Create, edit, and manage user accounts.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-10 bg-white border border-[#dee1e6] rounded-md shadow-sm cursor-pointer">
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-filter.svg" alt="filter" />
-                <span className="font-[Archivo] text-sm font-medium text-[#171a1f]">Filter: All</span>
-                <img className="w-4 h-4 shrink-0" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer">
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
+                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: All</span>
+                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
