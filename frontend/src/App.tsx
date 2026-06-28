@@ -3,6 +3,7 @@ import { UserProvider } from './context/UserContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminRoute } from './components/AdminRoute'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import StaffInventory from './pages/StaffInventory'
 import AdminInventory from './pages/AdminInventory'
 import AccountManager from './pages/AccountManager'
@@ -15,6 +16,7 @@ function App() {
       <UserProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route
             path="/inventory"
             element={
