@@ -177,6 +177,8 @@ function AccountManager() {
     userId: string
     password: string
     role: 'admin' | 'staff'
+    securityQuestion: string
+    securityAnswer: string
   }) {
     try {
       await createUser({
@@ -185,6 +187,8 @@ function AccountManager() {
         lastName: data.lastName,
         password: data.password,
         role: data.role,
+        securityQuestion: data.securityQuestion,
+        securityAnswer: data.securityAnswer,
       })
       // Refresh the list from the backend so we get the real _id and createdAt
       const refreshed = await getAllUsers()
