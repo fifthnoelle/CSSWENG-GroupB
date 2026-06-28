@@ -138,6 +138,7 @@ function AccountManager() {
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     setIsLoading(true)
@@ -212,22 +213,29 @@ function AccountManager() {
   }
 
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} />
+      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
         {/* Header */}
-        <header className="h-16 border-b border-[#dee1e6] flex items-center px-4 gap-3 shrink-0 bg-white z-10">
-          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 rounded-md">
-            <img className="w-4 h-4 shrink-0" src="/assets/icon-search.svg" alt="search" />
+        <header className="h-16 border-b border-[#dee1e6] dark:border-white/10 flex items-center px-4 gap-3 shrink-0 bg-white dark:bg-[#14151a] z-10">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden p-2 -ml-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5 text-[#171a1f] dark:text-[#e5e7eb]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div className="flex-1 flex items-center gap-2 px-3 h-9 bg-[#f3f4f6]/50 dark:bg-white/5 rounded-md">
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-search.svg" alt="search" />
             <input
               type="text"
               placeholder="Search accounts..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 text-sm font-[Archivo] text-[#565e6c] placeholder:text-[#565e6c] outline-none bg-transparent"
+              className="flex-1 text-sm font-[Archivo] text-[#565e6c] dark:text-[#d1d5db] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-transparent"
             />
             {isLoading && (
               <div className="w-4 h-4 border-2 border-[#636AE8] border-t-transparent rounded-full animate-spin" />
@@ -275,18 +283,6 @@ function AccountManager() {
           </div>
         </main>
       </div>
-
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#dee1e6] flex items-center justify-around z-20">
-        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
-          <img className="w-5 h-5" src="/assets/icon-inventory.svg" alt="inventory" />
-          <span className="font-[Archivo] text-[10px] text-[#565e6c]">Inventory</span>
-        </div>
-        <div className="flex flex-col items-center gap-0.5 px-4 py-2">
-          <img className="w-5 h-5" src="/assets/icon-account.svg" alt="accounts" />
-          <span className="font-[Archivo] text-[10px] font-bold text-[#93191d]">Accounts</span>
-        </div>
-      </nav>
 
       {/* Create Account Modal */}
       {showCreateModal && (
