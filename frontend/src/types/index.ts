@@ -6,6 +6,7 @@ export interface User {
   middleName?: string
   lastName: string
   role: 'admin' | 'staff'
+  lockedUntil?: string | null
   createdAt: string
 }
 
