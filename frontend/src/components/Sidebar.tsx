@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../services/auth.service'
+import ChangePasswordModal from './ChangePasswordModal'
 
 export interface NavItem {
   label: string
@@ -17,6 +18,7 @@ function Sidebar({ user, navItems }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   const initials = `${user.firstName[0]}${user.lastName[0]}`
   const isAdmin = user.role.toLowerCase() === 'admin'
@@ -32,6 +34,7 @@ function Sidebar({ user, navItems }: SidebarProps) {
   }
 
   return (
+    <>
     <aside className="hidden md:flex flex-col border-r border-[#dee1e6] h-full shrink-0 w-16 lg:w-64">
 
       {/* Logo */}
@@ -75,6 +78,12 @@ function Sidebar({ user, navItems }: SidebarProps) {
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 lg:left-3 lg:right-3 mb-1 bg-white border border-[#dee1e6] rounded-md shadow-lg overflow-hidden">
             <button
+              onClick={() => { setMenuOpen(false); setShowChangePassword(true) }}
+              className="w-full text-left px-3 py-2 text-sm font-[Archivo] font-medium text-[#171a1f] hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Change Password
+            </button>
+            <button
               onClick={handleLogout}
               className="w-full text-left px-3 py-2 text-sm font-[Archivo] font-medium text-[#93191d] hover:bg-[#fdf2f2] transition-colors cursor-pointer"
             >
@@ -110,6 +119,11 @@ function Sidebar({ user, navItems }: SidebarProps) {
       </div>
 
     </aside>
+
+    {showChangePassword && (
+      <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+    )}
+    </>
   )
 }
 
