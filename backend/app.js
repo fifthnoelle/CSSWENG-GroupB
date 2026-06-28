@@ -53,6 +53,12 @@ app.use('/api', userRoutes);
 //Inventory Route
 const inventoryRoutes = require('./routes/inventory.routes');
 app.use('/api/inventory', inventoryRoutes);
+//Reports Route
+const reportsRoutes = require('./routes/reports.routes');
+app.use('/api/reports', reportsRoutes);
+//Logs Route
+const logsRoutes = require('./routes/logs.routes');
+app.use('/api/logs', logsRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {
