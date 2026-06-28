@@ -17,20 +17,27 @@ function currentMonthValue() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-function monthLabel(value: string) {
-  const [year, month] = value.split('-').map(Number)
-  const d = new Date(year, month - 1, 1)
-  return d.toLocaleString(undefined, { month: 'long', year: 'numeric' })
-}
-
 function formatLastUsed(value: string | null) {
   if (!value) return 'Never used'
   const d = new Date(value)
   return `Last used ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
+function todayValue() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function ReportsPage() {
+  const [rangeMode, setRangeMode] = useState<'month' | 'custom'>('month')
   const [month, setMonth] = useState(currentMonthValue())
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date()
+    d.setDate(1)
+    return d.toISOString().slice(0, 10)
+  })
+  const [endDate, setEndDate] = useState(todayValue())
+
+  const [resolvedRange, setResolvedRange] = useState<{ startDate: string; endDate: string } | null>(null)
   const [items, setItems] = useState<MonthlySummaryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -43,15 +50,18 @@ function ReportsPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await getMonthlySummary(month)
+      const res = rangeMode === 'custom'
+        ? await getMonthlySummary({ startDate, endDate })
+        : await getMonthlySummary({ month })
       setItems(res.items)
+      setResolvedRange({ startDate: res.startDate, endDate: res.endDate })
     } catch (err) {
-      console.error('Failed to load monthly summary:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load monthly summary.')
+      console.error('Failed to load summary:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load summary.')
     } finally {
       setLoading(false)
     }
-  }, [month])
+  }, [rangeMode, month, startDate, endDate])
 
   const loadInactive = useCallback(async () => {
     setInactiveLoading(true)
@@ -132,17 +142,61 @@ function ReportsPage() {
           {/* Monthly summary — US-A5 */}
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
             <div>
-              <h2 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Monthly Summary</h2>
+              <h2 className="font-[Archivo] text-xl md:text-2xl font-bold text-[#171a1f] tracking-tight">Stock Summary</h2>
               <p className="font-[Archivo] text-sm text-[#565e6c] mt-1">
-                Beginning inventory, purchases, usage, and ending stock for {monthLabel(month)}.
+                Beginning inventory, purchases, usage, and ending stock
+                {resolvedRange ? ` for ${resolvedRange.startDate} to ${resolvedRange.endDate}.` : '.'}
               </p>
             </div>
-            <input
-              type="month"
-              value={month}
-              onChange={e => setMonth(e.target.value)}
-              className="h-10 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm text-[#171a1f] outline-none"
-            />
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex bg-[#f3f4f6] rounded-md p-1 gap-1">
+                <button
+                  onClick={() => setRangeMode('month')}
+                  className={`px-3 h-8 rounded text-sm font-bold font-[Inter] transition-colors ${
+                    rangeMode === 'month' ? 'bg-white text-[#323842] shadow-sm' : 'text-[#9095a0]'
+                  }`}
+                >
+                  Month
+                </button>
+                <button
+                  onClick={() => setRangeMode('custom')}
+                  className={`px-3 h-8 rounded text-sm font-bold font-[Inter] transition-colors ${
+                    rangeMode === 'custom' ? 'bg-white text-[#323842] shadow-sm' : 'text-[#9095a0]'
+                  }`}
+                >
+                  Custom Range
+                </button>
+              </div>
+
+              {rangeMode === 'month' ? (
+                <input
+                  type="month"
+                  value={month}
+                  onChange={e => setMonth(e.target.value)}
+                  className="h-10 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm text-[#171a1f] outline-none"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    max={endDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="h-10 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm text-[#171a1f] outline-none"
+                  />
+                  <span className="font-[Archivo] text-sm text-[#9095a0]">to</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    min={startDate}
+                    max={todayValue()}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="h-10 px-3 border border-[#dee1e6] rounded-md font-[Archivo] text-sm text-[#171a1f] outline-none"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {loading && (
