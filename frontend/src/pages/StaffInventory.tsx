@@ -4,12 +4,11 @@ import StockUpdateModal from '../components/StockUpdateModal'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
 import { getInventory, updateStock as updateStockApi } from '../services/inventory.service'
+import { useUser } from '../context/UserContext'
 
 const staffNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/inventory' },
 ]
-
-const staffUser = { firstName: 'James', lastName: 'Reyes', role: 'Staff' }
 
 const statusConfig: Record<StockStatus, { label: string; bg: string; border: string; text: string }> = {
   'in-stock':     { label: 'IN STOCK',     bg: 'bg-[#D1FAE5]', border: 'border-[#A7F3D0]', text: 'text-[#047857]' },
@@ -57,6 +56,7 @@ function InventoryCard({ item, onAddClick }: { item: InventoryItem; onAddClick: 
 }
 
 function Inventory() {
+  const { user } = useUser()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -111,10 +111,12 @@ function Inventory() {
     }
   }
 
+  if (!user) return null
+
   return (
     <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={staffUser} navItems={staffNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      <Sidebar user={user} navItems={staffNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
