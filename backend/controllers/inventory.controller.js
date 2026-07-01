@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const InventoryModel = require("../models/inventory.model");
 const { createLog } = require("./logs.controller");
 
@@ -101,16 +102,7 @@ const createItem = async (req, res) => {
 
         return res.status(201).json({
             message: "Item created successfully",
-            item: {
-                id: newItem._id,
-                itemName: newItem.itemName,
-                itemType: newItem.itemType,
-                measurementUnit: newItem.measurementUnit,
-                startingStock: newItem.startingStock,
-                lowStockThreshold: newItem.lowStockThreshold,
-                createdBy: newItem.createdBy,
-                createdAt: newItem.createdAt
-            }
+            item: newItem
         });
 
     } catch (error) {
@@ -158,6 +150,10 @@ const updateItem = async (req, res) => {
     try {
         const itemId = req.params.id;
         const body = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(404).json({ error: "Item not found" });
+        }
 
         // Whitelist editable fields only — prevents a client from directly
         // overwriting currentStock, createdBy, _id, etc. via this endpoint.
@@ -235,6 +231,10 @@ const updateStock = async (req, res) => {
     const { actionType, quantityChanged, notes = '' } = req.body;
 
     try {
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
         // EC23 — only numeric, positive quantities accepted
         if (typeof quantityChanged !== 'number' || isNaN(quantityChanged) || quantityChanged <= 0) {
             await logValidationFailure(req, `updateStock rejected: invalid quantityChanged (${JSON.stringify(quantityChanged)})`);
@@ -298,6 +298,11 @@ const updateStock = async (req, res) => {
 const deleteItem = async (req, res) => {
     try {
         const itemId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
         const deletedItem = await InventoryModel.findByIdAndDelete(itemId);
 
         if (!deletedItem) {
