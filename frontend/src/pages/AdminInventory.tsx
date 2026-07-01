@@ -5,6 +5,7 @@ import ItemFormModal from '../components/ItemFormModal'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
 import { getInventory, createItem, updateItem, updateStock as updateStockApi, deleteItem as deleteItemApi } from '../services/inventory.service'
+import { useUser } from '../context/UserContext'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -12,8 +13,6 @@ const adminNavItems = [
   { label: 'Reports',   icon: '/assets/icon-chart.svg',     path: '/reports'         },
   { label: 'Accounts',  icon: '/assets/icon-account.svg',   path: '/accounts'        },
 ]
-
-const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 const statusConfig: Record<StockStatus, { label: string; bg: string; border: string; text: string }> = {
   'in-stock':     { label: 'IN STOCK',     bg: 'bg-[#D1FAE5]', border: 'border-[#A7F3D0]', text: 'text-[#047857]' },
@@ -93,6 +92,7 @@ function InventoryCard({
 }
 
 function AdminInventory() {
+  const { user } = useUser()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -197,10 +197,12 @@ function AdminInventory() {
     }
   }
 
+  if (!user) return null
+
   return (
     <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      <Sidebar user={user} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
