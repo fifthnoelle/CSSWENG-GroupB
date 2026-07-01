@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { UserProvider } from './context/UserContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminRoute } from './components/AdminRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import StaffInventory from './pages/StaffInventory'
@@ -10,61 +11,67 @@ import AccountManager from './pages/AccountManager'
 import LogsPage from './pages/LogsPage'
 import ReportsPage from './pages/ReportsPage'
 import NotFound from './pages/NotFound'
+import ServerError from './pages/ServerError'
 
 function App() {
   return (
     <BrowserRouter>
       <UserProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route
-            path="/inventory"
-            element={
-              <ProtectedRoute>
-                <StaffInventory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/inventory"
-            element={
-              <AdminRoute>
-                <AdminInventory />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/accounts"
-            element={
-              <ProtectedRoute>
-                <AccountManager />
-              </ProtectedRoute>
-            }
-          />
-          {/* Logs & Reports are Admin/Owner-only per the master doc permissions table */}
-          <Route
-            path="/logs"
-            element={
-              <AdminRoute>
-                <LogsPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <AdminRoute>
-                <ReportsPage />
-              </AdminRoute>
-            }
-          />
-          {/* Redirect root to login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute>
+                  <StaffInventory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/inventory"
+              element={
+                <AdminRoute>
+                  <AdminInventory />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <ProtectedRoute>
+                  <AccountManager />
+                </ProtectedRoute>
+              }
+            />
+            {/* Logs & Reports are Admin/Owner-only per the master doc permissions table */}
+            <Route
+              path="/logs"
+              element={
+                <AdminRoute>
+                  <LogsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <AdminRoute>
+                  <ReportsPage />
+                </AdminRoute>
+              }
+            />
+            {/* Redirect root to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Catch-all — any unknown path renders a proper 404 instead of a blank screen */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Direct link/navigation target for a 500-style failure */}
+            <Route path="/server-error" element={<ServerError />} />
+
+            {/* Catch-all — any unknown path renders a proper 404 instead of a blank screen */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ErrorBoundary>
       </UserProvider>
     </BrowserRouter>
   )
