@@ -76,9 +76,9 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 bg-white sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden">
+      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 max-h-[92vh] bg-white sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden flex flex-col">
 
-        <div className="bg-[#f3f4f6]/20 px-5 py-4 border-b border-[#dee1e6]">
+        <div className="bg-[#f3f4f6]/20 px-5 py-4 border-b border-[#dee1e6] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#636AE8]/10 rounded-full flex items-center justify-center shrink-0">
               <img className="w-6 h-6" src="/assets/icon-add-circle.svg" alt="edit user" />
@@ -92,6 +92,7 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
           </div>
         </div>
 
+        <div className="overflow-y-auto flex-1 min-h-0">
         <div className="p-5 flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="font-[Archivo] text-sm font-semibold text-[#171a1f]">Email</label>
@@ -143,8 +144,9 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
             </select>
           </div>
         </div>
+        </div>
 
-        <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10">
+        <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10 shrink-0">
           <button
             onClick={onClose}
             className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
