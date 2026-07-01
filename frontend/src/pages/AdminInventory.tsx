@@ -102,6 +102,22 @@ function AdminInventory() {
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [showAlert, setShowAlert] = useState(true)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | StockStatus>('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  const filterLabels: Record<'all' | StockStatus, string> = {
+    all: 'All',
+    'in-stock': 'In Stock',
+    'low-stock': 'Low Stock',
+    'out-of-stock': 'Out of Stock',
+  }
+
+  const visibleItems = items.filter(item => {
+    const matchesSearch = item.itemName.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    const matchesStatus = statusFilter === 'all' || getStatus(item) === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   const lowCount = items.filter(i => getStatus(i) !== 'in-stock').length
 
@@ -201,6 +217,8 @@ function AdminInventory() {
             <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-search.svg" alt="search" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search ingredient..."
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] dark:text-[#d1d5db] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-transparent"
             />
@@ -236,10 +254,33 @@ function AdminInventory() {
               <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">Manage and track your supplies and ingredients.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer">
-                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
-                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: All</span>
-                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(o => !o)}
+                  className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer"
+                >
+                  <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
+                  <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: {filterLabels[statusFilter]}</span>
+                  <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
+                </button>
+                {filterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                    <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-lg z-20 py-1">
+                      {(['all', 'in-stock', 'low-stock', 'out-of-stock'] as const).map(opt => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => { setStatusFilter(opt); setFilterOpen(false) }}
+                          className={`w-full text-left px-3 py-2 text-sm font-[Archivo] hover:bg-gray-100 dark:hover:bg-white/10 ${statusFilter === opt ? 'font-semibold text-[#636AE8]' : 'text-[#171a1f] dark:text-[#e5e7eb]'}`}
+                        >
+                          {filterLabels[opt]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
               {/* Add Ingredient — admin only */}
               <button
@@ -261,9 +302,9 @@ function AdminInventory() {
           )}
 
           {/* Grid */}
-          {!loading && !loadError && (
+          {!loading && !loadError && visibleItems.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {items.map(item => (
+              {visibleItems.map(item => (
                 <InventoryCard
                   key={item._id}
                   item={item}
@@ -273,6 +314,9 @@ function AdminInventory() {
                 />
               ))}
             </div>
+          )}
+          {!loading && !loadError && visibleItems.length === 0 && (
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No items match your search or filter.</p>
           )}
         </main>
       </div>
