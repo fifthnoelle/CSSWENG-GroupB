@@ -6,6 +6,7 @@ import RemoveAccountModal from '../components/RemoveAccountModal'
 import UserUpdateModal from '../components/UserUpdateModal'
 import CreateAccountModal from '../components/CreateAccountModal'
 import { getAllUsers, searchUsers, deleteUser, createUser, updateUser } from '../services/user.service'
+import { useUser } from '../context/UserContext'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -129,30 +130,47 @@ function UserCard({
   )
 }
 
-const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
-
 function AccountManager() {
+  const { user: currentUser } = useUser()
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [userToRemove, setUserToRemove] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff'>('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  const filterLabels: Record<'all' | 'admin' | 'staff', string> = {
+    all: 'All',
+    admin: 'Admin',
+    staff: 'Staff',
+  }
+
+  const visibleUsers = users.filter(u => roleFilter === 'all' || u.role === roleFilter)
 
   useEffect(() => {
     setIsLoading(true)
+    setLoadError('')
 
     const delayDebounce = setTimeout(() => {
       if (searchQuery.trim() === '') {
         getAllUsers()
           .then(setUsers)
-          .catch(err => console.error('Failed to load users:', err))
+          .catch(err => {
+            console.error('Failed to load users:', err)
+            setLoadError(err instanceof Error ? err.message : 'Failed to load accounts. Please try refreshing.')
+          })
           .finally(() => setIsLoading(false))
       } else {
         searchUsers(searchQuery)
           .then(setUsers)
-          .catch(err => console.error('Failed to load users:', err))
+          .catch(err => {
+            console.error('Failed to search users:', err)
+            setLoadError(err instanceof Error ? err.message : 'Search failed. Please try again.')
+          })
           .finally(() => setIsLoading(false))
       }
     }, 300)
@@ -166,7 +184,7 @@ function AccountManager() {
       setUserToRemove(null)
     } catch (err) {
       console.error('Failed to delete user:', err)
-      alert('Failed to delete user. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to delete user. Please try again.')
     }
   }
 
@@ -208,14 +226,16 @@ function AccountManager() {
       setUserToEdit(null)
     } catch (err) {
       console.error('Failed to update user:', err)
-      alert('Failed to update user. The email may already be in use.')
+      alert(err instanceof Error ? err.message : 'Failed to update user. The email may already be in use.')
     }
   }
+
+  if (!currentUser) return null
 
   return (
     <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      <Sidebar user={currentUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
@@ -254,10 +274,33 @@ function AccountManager() {
               <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] mt-1">Create, edit, and manage user accounts.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer">
-                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
-                <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: All</span>
-                <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(o => !o)}
+                  className="flex items-center gap-2 px-3 h-10 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm cursor-pointer"
+                >
+                  <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-filter.svg" alt="filter" />
+                  <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">Filter: {filterLabels[roleFilter]}</span>
+                  <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-chevron-down.svg" alt="chevron" />
+                </button>
+                {filterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                    <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-lg z-20 py-1">
+                      {(['all', 'admin', 'staff'] as const).map(opt => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => { setRoleFilter(opt); setFilterOpen(false) }}
+                          className={`w-full text-left px-3 py-2 text-sm font-[Archivo] hover:bg-gray-100 dark:hover:bg-white/10 ${roleFilter === opt ? 'font-semibold text-[#636AE8]' : 'text-[#171a1f] dark:text-[#e5e7eb]'}`}
+                        >
+                          {filterLabels[opt]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -269,18 +312,28 @@ function AccountManager() {
             </div>
           </div>
 
+          {/* Load / search error */}
+          {loadError && (
+            <p className="font-[Archivo] text-sm text-[#BE123C] dark:text-[#fca5a5] mb-4">{loadError}</p>
+          )}
+
           {/* User cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {users.map((user, i) => (
-              <UserCard
-                key={user._id}
-                user={user}
-                colorIndex={i}
-                onEditClick={() => setUserToEdit(user)}
-                onRemoveClick={() => setUserToRemove(user)}
-              />
-            ))}
-          </div>
+          {visibleUsers.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {visibleUsers.map((user, i) => (
+                <UserCard
+                  key={user._id}
+                  user={user}
+                  colorIndex={i}
+                  onEditClick={() => setUserToEdit(user)}
+                  onRemoveClick={() => setUserToRemove(user)}
+                />
+              ))}
+            </div>
+          )}
+          {!loadError && visibleUsers.length === 0 && (
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No accounts match your search or filter.</p>
+          )}
         </main>
       </div>
 
@@ -296,7 +349,7 @@ function AccountManager() {
       {userToEdit && (
         <UserUpdateModal
           user={userToEdit}
-          userId={adminUser.firstName[0] + adminUser.lastName[0]}
+          userId={currentUser._id}
           onClose={() => setUserToEdit(null)}
           onSave={handleEdit}
         />
