@@ -178,14 +178,8 @@ function AccountManager() {
   }, [searchQuery])
 
   async function handleRemove(_id: string) {
-    try {
-      await deleteUser(_id)
-      setUsers(prev => prev.filter(u => u._id !== _id))
-      setUserToRemove(null)
-    } catch (err) {
-      console.error('Failed to delete user:', err)
-      alert(err instanceof Error ? err.message : 'Failed to delete user. Please try again.')
-    }
+    await deleteUser(_id)
+    setUsers(prev => prev.filter(u => u._id !== _id))
   }
 
   async function handleCreate(data: {
@@ -199,36 +193,30 @@ function AccountManager() {
     securityQuestion: string
     securityAnswer: string
   }) {
-    try {
-      await createUser({
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        password: data.password,
-        role: data.role,
-        securityQuestion: data.securityQuestion,
-        securityAnswer: data.securityAnswer,
-      })
-      // Refresh the list from the backend so we get the real _id and createdAt
-      const refreshed = await getAllUsers()
-      setUsers(refreshed)
-    } catch (err) {
-      console.error('Failed to create user:', err)
-      alert(err instanceof Error ? err.message : 'Failed to create user. The email may already be in use.')
-    }
+    await createUser({
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      password: data.password,
+      role: data.role,
+      securityQuestion: data.securityQuestion,
+      securityAnswer: data.securityAnswer,
+    })
+    // Refresh the list from the backend so we get the real _id and createdAt
+    const refreshed = await getAllUsers()
+    setUsers(refreshed)
   }
 
   async function handleEdit(email: string, firstName: string, lastName: string, role: 'admin' | 'staff') {
     if (!userToEdit) return
-    try {
-      const result = await updateUser(userToEdit._id, { email, firstName, lastName, role })
-      setUsers(prev => prev.map(u => (u._id === userToEdit._id ? result.user : u)))
-      setUserToEdit(null)
-    } catch (err) {
-      console.error('Failed to update user:', err)
-      alert(err instanceof Error ? err.message : 'Failed to update user. The email may already be in use.')
-    }
+    const result = await updateUser(userToEdit._id, { email, firstName, lastName, role })
+    setUsers(prev => prev.map(u => (u._id === userToEdit._id ? result.user : u)))
   }
+
+  const adminCount = users.filter(u => u.role === 'admin').length
+  const isEditingLastAdmin = !!userToEdit && userToEdit.role === 'admin' && adminCount <= 1
+  const isRemovingLastAdmin = !!userToRemove && userToRemove.role === 'admin' && adminCount <= 1
+
 
   if (!currentUser) return null
 
@@ -350,6 +338,7 @@ function AccountManager() {
         <UserUpdateModal
           user={userToEdit}
           userId={currentUser._id}
+          isLastAdmin={isEditingLastAdmin}
           onClose={() => setUserToEdit(null)}
           onSave={handleEdit}
         />
@@ -359,6 +348,7 @@ function AccountManager() {
       {userToRemove && (
         <RemoveAccountModal
           user={userToRemove}
+          isLastAdmin={isRemovingLastAdmin}
           onClose={() => setUserToRemove(null)}
           onConfirm={handleRemove}
         />
