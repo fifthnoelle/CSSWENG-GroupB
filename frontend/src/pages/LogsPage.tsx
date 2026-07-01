@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
 import { getLogs } from '../services/logs.service'
 import type { Log } from '../types'
+import { useUser } from '../context/UserContext'
 
 const adminNavItems = [
   { label: 'Inventory', icon: '/assets/icon-inventory.svg', path: '/admin/inventory' },
@@ -10,8 +11,6 @@ const adminNavItems = [
   { label: 'Reports',   icon: '/assets/icon-chart.svg',     path: '/reports'         },
   { label: 'Accounts',  icon: '/assets/icon-account.svg',   path: '/accounts'        },
 ]
-
-const adminUser = { firstName: 'John', lastName: 'Doe', role: 'Admin' }
 
 const actionLabels: Record<string, { label: string; bg: string; text: string }> = {
   'used-today':   { label: 'Used Today',    bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
@@ -39,6 +38,7 @@ function formatDate(value: string) {
 }
 
 function LogsPage() {
+  const { user } = useUser()
   const [logs, setLogs] = useState<Log[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,10 +79,12 @@ function LogsPage() {
     setPage(1)
   }
 
+  if (!user) return null
+
   return (
     <div className="h-screen bg-white dark:bg-[#14151a] flex overflow-hidden">
 
-      <Sidebar user={adminUser} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      <Sidebar user={user} navItems={adminNavItems} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
