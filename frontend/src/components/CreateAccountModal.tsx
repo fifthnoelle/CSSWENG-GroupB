@@ -70,10 +70,10 @@ function CreateAccountModal({ onClose, onSave }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 bg-white sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden">
+      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 max-h-[92vh] bg-white sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#dee1e6]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#dee1e6] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#636AE8]/10 rounded-md flex items-center justify-center shrink-0">
               <img className="w-6 h-6" src="/assets/icon-add-square.svg" alt="create account" />
@@ -84,6 +84,11 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             <img className="w-4 h-4" src="/assets/icon-close.svg" alt="close" />
           </button>
         </div>
+
+        {/* Scrollable body — header/footer stay fixed, everything else scrolls
+            so it's reachable no matter how short the viewport is (this is
+            what was cutting off the Create button on desktop). */}
+        <div className="overflow-y-auto flex-1 min-h-0">
 
         {/* Body */}
         <div className="p-5 flex flex-col gap-4">
@@ -232,7 +237,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
         </div>
 
         {/* Security Question — used for self-service password recovery (2.1.8) */}
-        <div className="px-5 pb-1 flex flex-col gap-4">
+        <div className="px-5 pb-5 flex flex-col gap-4">
           <div>
             <label className={labelClass}>Security Question</label>
             <input
@@ -269,8 +274,10 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           </div>
         </div>
 
+        </div>
+
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10">
+        <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10 shrink-0">
           <button
             onClick={onClose}
             className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors cursor-pointer"
