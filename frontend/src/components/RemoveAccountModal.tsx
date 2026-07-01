@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import type { User } from '../types'
-import { deleteUser } from '../services/user.service'
 
 interface Props {
   user: User
   onClose: () => void
-  onConfirm: (userId: string) => void
+  onConfirm: (userId: string) => void | Promise<void>
 }
 
 
@@ -14,12 +13,9 @@ function RemoveAccountModal({ user, onClose, onConfirm }: Props) {
   const [isDeleting, setIsDeleting] = useState(false)
   
   const handleRemoveClick = async () => {
+    setIsDeleting(true)
     try {
-      setIsDeleting(true)
-      await deleteUser(user._id)
-      onConfirm(user._id)
-    } catch (error) {
-      console.error("Failed to delete user:", error)
+      await onConfirm(user._id)
     } finally {
       setIsDeleting(false)
     }
