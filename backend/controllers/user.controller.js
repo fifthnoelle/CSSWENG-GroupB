@@ -1,4 +1,5 @@
 //ALL USER RELATED CONTROLLER FUNCTIONS
+const mongoose = require("mongoose");
 const UsersModel = require("../models/user.model");
 const { hashPassword, validatePasswordPolicy, validateSecurityAnswer } = require("../utils/auth");
 const { createLog } = require("./logs.controller");
@@ -7,6 +8,41 @@ const bcrypt = require("bcrypt");
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 1000 * 60 * 15; // 15 minute lockout, adjust as needed
 const MIN_PASSWORD_AGE_MS = 1000 * 60 * 60 * 24; // 2.1.10 — 1 day
+
+// Force-logout helper — destroys every server-side session belonging to a
+// user. req.session.role/email are cached at login time, so a role change
+// (or account deletion) wouldn't otherwise take effect until that user's
+// cookie naturally expires (up to 24h — see sessionConfig in app.js). This
+// makes the change effective immediately: their next request finds no
+// matching session, so requireAuth/requireAdmin reject it and they're
+// bounced back to the login screen.
+async function destroySessionsForUser(userId) {
+    try {
+        const db = mongoose.connection.db;
+        if (!db) return;
+        const sessionsCollection = db.collection('sessions');
+        const allSessions = await sessionsCollection.find({}).toArray();
+        const idsToDelete = [];
+        for (const doc of allSessions) {
+            let sessionData = doc.session;
+            if (typeof sessionData === 'string') {
+                try {
+                    sessionData = JSON.parse(sessionData);
+                } catch {
+                    continue;
+                }
+            }
+            if (sessionData && String(sessionData.userId) === String(userId)) {
+                idsToDelete.push(doc._id);
+            }
+        }
+        if (idsToDelete.length) {
+            await sessionsCollection.deleteMany({ _id: { $in: idsToDelete } });
+        }
+    } catch (err) {
+        console.error("Error destroying sessions for user:", err);
+    }
+}
 
 /*
     TODO:
@@ -338,6 +374,13 @@ const updateUser = async (req, res) => {
                 : 'Account details updated'
         });
 
+        // A role change must take effect immediately, not whenever this
+        // user's existing session cookie happens to expire — kill any
+        // active session(s) they're currently signed in with.
+        if (roleChanged) {
+            await destroySessionsForUser(updatedUser._id.toString());
+        }
+
         return res.status(200).json({
             message: "User updated successfully",
             user: updatedUser
@@ -373,6 +416,9 @@ const deleteUser = async (req, res) => {
         }
 
         const deletedUser = await UsersModel.findByIdAndDelete(userId);
+        if (!deletedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
 
         // Audit log — account deletion
         await createLog({
@@ -383,6 +429,9 @@ const deleteUser = async (req, res) => {
             userTargetName: `${deletedUser.firstName} ${deletedUser.lastName}`,
             notes: `Deleted account with role: ${deletedUser.role}`
         });
+
+        // Don't leave a session usable for an account that no longer exists
+        await destroySessionsForUser(deletedUser._id.toString());
 
         return res.status(200).json({
             message: "User deleted successfully",
