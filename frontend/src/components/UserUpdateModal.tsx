@@ -1,18 +1,24 @@
-import {useState} from 'react'
-import type {User, Log} from '../types'
+import { useState } from 'react'
+import type { User, Log } from '../types'
 
 interface Props {
     user: User
     userId: string
+    /** True when `user` is currently the only Admin account — the Staff
+     *  option is disabled outright rather than letting the person pick it
+     *  and only finding out it's rejected after clicking Save. */
+    isLastAdmin: boolean
     onClose: () => void
-    onSave: (email: string, firstName: string, lastName: string, role: 'admin' | 'staff') => void
+    onSave: (email: string, firstName: string, lastName: string, role: 'admin' | 'staff') => Promise<void>
 }
 
-function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
+function UserUpdateModal({ user, userId, isLastAdmin, onClose, onSave }: Props) {
     const [email, setEmail] = useState(user.email)
     const [firstName, setFirstName] = useState(user.firstName)
     const [lastName, setLastName] = useState(user.lastName)
     const [role, setRole] = useState<'admin' | 'staff'>(user.role)
+    const [error, setError] = useState('')
+    const [isSaving, setIsSaving] = useState(false)
 
     function createAuditLog(): Log {
         //Detect changes for audit log
@@ -61,17 +67,23 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
     }
 }*/
 
-    function handleSave() {
+    async function handleSave() {
         if (!user) return
-        
+
         const auditLog = createAuditLog()
         console.log('Audit Log:', auditLog)
-        //updateUser(user._id, { email, firstName, lastName, role })
-        
         //TODO: Send audit log to backend
-        
-        onSave(email.trim(), firstName.trim(), lastName.trim(), role)
-        onClose()
+
+        setError('')
+        setIsSaving(true)
+        try {
+            await onSave(email.trim(), firstName.trim(), lastName.trim(), role)
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update user. Please try again.')
+        } finally {
+            setIsSaving(false)
+        }
     }
 
   return (
@@ -94,6 +106,13 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
 
         <div className="overflow-y-auto flex-1 min-h-0">
         <div className="p-5 flex flex-col gap-4">
+
+          {error && (
+            <div className="bg-[#FFE4E6] border border-[#FECDD3] text-[#BE123C] text-sm font-[Archivo] rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
+
           <div>
             <label htmlFor="email" className="font-[Archivo] text-sm font-semibold text-[#171a1f]">Email</label>
             <input
@@ -140,8 +159,13 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
               className="mt-2 w-full rounded-md border border-[#dee1e6] bg-white px-3 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
             >
               <option value="admin">Admin</option>
-              <option value="staff">Staff</option>
+              <option value="staff" disabled={isLastAdmin}>Staff</option>
             </select>
+            {isLastAdmin && (
+              <p className="mt-1.5 text-xs font-[Archivo] text-[#9095a0]">
+                This is the only Admin account, so it can't be demoted to Staff. Promote another account to Admin first.
+              </p>
+            )}
           </div>
         </div>
         </div>
@@ -149,15 +173,17 @@ function UserUpdateModal({ user, userId, onClose, onSave }: Props) {
         <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10 shrink-0">
           <button
             onClick={onClose}
-            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
+            disabled={isSaving}
+            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="h-10 px-5 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-medium text-white shadow-sm hover:bg-[#4f56d4] transition-colors"
+            disabled={isSaving}
+            className="h-10 px-5 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-medium text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
 
