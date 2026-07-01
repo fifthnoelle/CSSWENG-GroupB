@@ -12,7 +12,7 @@ interface Props {
     role: 'admin' | 'staff'
     securityQuestion: string
     securityAnswer: string
-  }) => void
+  }) => Promise<void>
 }
 
 function CreateAccountModal({ onClose, onSave }: Props) {
@@ -29,6 +29,8 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [passwordTouched, setPasswordTouched]   = useState(false)
   const [confirmTouched, setConfirmTouched]     = useState(false)
   const [answerTouched, setAnswerTouched]       = useState(false)
+  const [error, setError]                       = useState('')
+  const [isSaving, setIsSaving]                 = useState(false)
 
   // Mirrors the backend policy in utils/auth.js — checked live so the user
   // never has to round-trip to the server to find out a rule was unmet.
@@ -43,7 +45,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
   const answerValid = securityAnswer.trim().length >= 4
 
-  function handleCreate() {
+  async function handleCreate() {
     setPasswordTouched(true)
     setConfirmTouched(true)
     setAnswerTouched(true)
@@ -51,18 +53,27 @@ function CreateAccountModal({ onClose, onSave }: Props) {
       !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
       !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
     ) return
-    onSave({
-      firstName: firstName.trim(),
-      middleName: middleName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      userId: userId.trim(),
-      password: password.trim(),
-      role,
-      securityQuestion: securityQuestion.trim(),
-      securityAnswer: securityAnswer.trim(),
-    })
-    onClose()
+
+    setError('')
+    setIsSaving(true)
+    try {
+      await onSave({
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        userId: userId.trim(),
+        password: password.trim(),
+        role,
+        securityQuestion: securityQuestion.trim(),
+        securityAnswer: securityAnswer.trim(),
+      })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const inputClass = "w-full h-10 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] placeholder:text-[#565e6c] outline-none bg-[#f3f4f6]/10 focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20 transition"
@@ -92,6 +103,12 @@ function CreateAccountModal({ onClose, onSave }: Props) {
 
         {/* Body */}
         <div className="p-5 flex flex-col gap-4">
+
+          {error && (
+            <div className="bg-[#FFE4E6] border border-[#FECDD3] text-[#BE123C] text-sm font-[Archivo] rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
 
           {/* First Name */}
           <div>
@@ -280,19 +297,21 @@ function CreateAccountModal({ onClose, onSave }: Props) {
         <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10 shrink-0">
           <button
             onClick={onClose}
-            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+            disabled={isSaving}
+            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={
+              isSaving ||
               !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
               !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
             }
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Create
+            {isSaving ? 'Creating...' : 'Create'}
           </button>
         </div>
 
