@@ -1,6 +1,45 @@
 const InventoryModel = require("../models/inventory.model");
 const LogsModel = require("../models/logs.model");
 
+// Shared by every report endpoint that accepts either a `month` or an
+// explicit `startDate`/`endDate` custom range. Throws a RangeError with a
+// user-facing message on bad input — callers turn that into a 400.
+function resolveDateRange({ month, startDate, endDate }) {
+    let rangeStart;
+    let rangeEnd; // exclusive upper bound
+
+    if (startDate || endDate) {
+        if (!startDate || !endDate) {
+            throw new RangeError("Both startDate and endDate are required for a custom range.");
+        }
+        rangeStart = new Date(`${startDate}T00:00:00.000`);
+        const endDateExclusive = new Date(`${endDate}T00:00:00.000`);
+        endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+        rangeEnd = endDateExclusive;
+
+        if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
+            throw new RangeError("Invalid date format. Use YYYY-MM-DD.");
+        }
+        if (rangeStart >= rangeEnd) {
+            throw new RangeError("startDate must be before endDate.");
+        }
+    } else {
+        const now = new Date();
+        const targetMonth = month
+            ? new Date(`${month}-01T00:00:00.000Z`)
+            : new Date(now.getFullYear(), now.getMonth(), 1);
+
+        if (isNaN(targetMonth.getTime())) {
+            throw new RangeError("Invalid month format. Use YYYY-MM.");
+        }
+
+        rangeStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+        rangeEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
+    }
+
+    return { rangeStart, rangeEnd };
+}
+
 /**
  * GET /reports/monthly-summary?month=YYYY-MM
  * GET /reports/monthly-summary?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
@@ -18,36 +57,11 @@ const getMonthlySummary = async (req, res) => {
     try {
         const { month, startDate, endDate } = req.query;
 
-        let rangeStart;
-        let rangeEnd; // exclusive upper bound
-
-        if (startDate || endDate) {
-            if (!startDate || !endDate) {
-                return res.status(400).json({ error: "Both startDate and endDate are required for a custom range." });
-            }
-            rangeStart = new Date(`${startDate}T00:00:00.000`);
-            const endDateExclusive = new Date(`${endDate}T00:00:00.000`);
-            endDateExclusive.setDate(endDateExclusive.getDate() + 1);
-            rangeEnd = endDateExclusive;
-
-            if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
-                return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
-            }
-            if (rangeStart >= rangeEnd) {
-                return res.status(400).json({ error: "startDate must be before endDate." });
-            }
-        } else {
-            const now = new Date();
-            const targetMonth = month
-                ? new Date(`${month}-01T00:00:00.000Z`)
-                : new Date(now.getFullYear(), now.getMonth(), 1);
-
-            if (isNaN(targetMonth.getTime())) {
-                return res.status(400).json({ error: "Invalid month format. Use YYYY-MM." });
-            }
-
-            rangeStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
-            rangeEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
+        let rangeStart, rangeEnd;
+        try {
+            ({ rangeStart, rangeEnd } = resolveDateRange({ month, startDate, endDate }));
+        } catch (err) {
+            return res.status(400).json({ error: err.message });
         }
 
         const items = await InventoryModel.find();
@@ -146,7 +160,98 @@ const getInactiveItems = async (req, res) => {
     }
 };
 
+function logToEvent(log) {
+    return {
+        actionTime: log.actionTime,
+        actionType: log.actionType,
+        userName: log.userName,
+        userTargetName: log.userTargetName,
+        notes: log.notes
+    };
+}
+
+/**
+ * GET /reports/account-activity?month=YYYY-MM
+ * GET /reports/account-activity?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ *
+ * Login activity (successes, failures, lockouts — with a day-by-day trend)
+ * and account changes (created, deleted, role changes) over a date range,
+ * sourced from the accounts audit log (logType: 'accounts').
+ */
+const getAccountActivity = async (req, res) => {
+    try {
+        const { month, startDate, endDate } = req.query;
+
+        let rangeStart, rangeEnd;
+        try {
+            ({ rangeStart, rangeEnd } = resolveDateRange({ month, startDate, endDate }));
+        } catch (err) {
+            return res.status(400).json({ error: err.message });
+        }
+
+        const logs = await LogsModel.find({
+            logType: 'accounts',
+            actionTime: { $gte: rangeStart, $lt: rangeEnd }
+        }).sort({ actionTime: 1 });
+
+        let totalSuccess = 0;
+        let totalFailed = 0;
+        let totalLockouts = 0;
+        const byDayMap = new Map(); // 'YYYY-MM-DD' -> { date, success, failed }
+
+        let created = 0;
+        let deleted = 0;
+        let roleChanges = 0;
+        const events = [];
+
+        for (const log of logs) {
+            const dayKey = log.actionTime.toISOString().slice(0, 10);
+
+            if (log.actionType === 'login-success') {
+                totalSuccess++;
+                const day = byDayMap.get(dayKey) || { date: dayKey, success: 0, failed: 0 };
+                day.success++;
+                byDayMap.set(dayKey, day);
+            } else if (log.actionType === 'login-failed') {
+                totalFailed++;
+                const day = byDayMap.get(dayKey) || { date: dayKey, success: 0, failed: 0 };
+                day.failed++;
+                byDayMap.set(dayKey, day);
+            } else if (log.actionType === 'account-locked') {
+                totalLockouts++;
+            }
+
+            if (log.actionType === 'create-user') {
+                created++;
+                events.push(logToEvent(log));
+            } else if (log.actionType === 'delete-user') {
+                deleted++;
+                events.push(logToEvent(log));
+            } else if (log.actionType === 'edit-role') {
+                roleChanges++;
+                events.push(logToEvent(log));
+            }
+        }
+
+        const byDay = Array.from(byDayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+        events.sort((a, b) => new Date(b.actionTime) - new Date(a.actionTime)); // newest first
+
+        const inclusiveEnd = new Date(rangeEnd.getTime() - 1);
+
+        return res.status(200).json({
+            startDate: rangeStart.toISOString().slice(0, 10),
+            endDate: inclusiveEnd.toISOString().slice(0, 10),
+            loginActivity: { totalSuccess, totalFailed, totalLockouts, byDay },
+            accountChanges: { created, deleted, roleChanges, events }
+        });
+    } catch (error) {
+        console.error("Error generating account activity report:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     getMonthlySummary,
-    getInactiveItems
+    getInactiveItems,
+    getAccountActivity
 };
