@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
 import { getLogs } from '../services/logs.service'
@@ -13,16 +14,20 @@ const adminNavItems = [
 ]
 
 const actionLabels: Record<string, { label: string; bg: string; text: string }> = {
-  'used-today':   { label: 'Used Today',    bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
-  'restock':      { label: 'Restock',       bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
-  'create-item':  { label: 'Item Created',  bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
-  'edit-item':    { label: 'Item Edited',   bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
-  'delete-item':  { label: 'Item Deleted',  bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
-  'create-user':  { label: 'Account Created', bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
-  'edit-user':    { label: 'Account Edited',   bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
-  'edit-role':    { label: 'Role Changed',     bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
-  'delete-user':  { label: 'Account Deleted',  bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
-  'account-locked': { label: 'Account Locked', bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'used-today':       { label: 'Used Today',        bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
+  'restock':          { label: 'Restock',           bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
+  'create-item':      { label: 'Item Created',      bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
+  'edit-item':        { label: 'Item Edited',       bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
+  'delete-item':      { label: 'Item Deleted',      bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'create-user':      { label: 'Account Created',   bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
+  'edit-user':        { label: 'Account Edited',    bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
+  'edit-role':        { label: 'Role Changed',      bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
+  'delete-user':      { label: 'Account Deleted',   bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'account-locked':   { label: 'Account Locked',    bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'login-success':    { label: 'Login Success',     bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
+  'login-failed':     { label: 'Login Failed',      bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'change-password':  { label: 'Password Changed',  bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
+  'forgot-password':  { label: 'Password Reset',    bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
 }
 
 function actionBadge(actionType: string) {
@@ -48,6 +53,17 @@ function LogsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
+  const [exporting, setExporting] = useState(false)
+
+  function toggleNote(id: string) {
+    setExpandedNotes(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const loadLogs = useCallback(async () => {
     setLoading(true)
@@ -79,6 +95,52 @@ function LogsPage() {
     setPage(1)
   }
 
+  async function handleExportExcel() {
+    setExporting(true)
+    try {
+      const allLogs: Log[] = []
+      let currentPage = 1
+      const maxPages = 50 // safety cap — 50 * 200 = 10,000 rows
+      while (currentPage <= maxPages) {
+        const res = await getLogs({
+          logType: logType || undefined,
+          sort,
+          page: currentPage,
+          limit: 200,
+        })
+        allLogs.push(...res.logs)
+        if (currentPage >= res.pagination.totalPages) break
+        currentPage++
+      }
+
+      const rows = allLogs.map(log => {
+        const badge = actionBadge(log.actionType)
+        const target = log.logType === 'accounts'
+          ? log.userTargetName
+          : (log.itemName || log.itemId || '')
+        const hasStockChange = log.logType === 'inventory' &&
+          (log.actionType === 'used-today' || log.actionType === 'restock')
+        return {
+          Date: formatDate(log.actionTime),
+          User: log.userName,
+          Action: badge.label,
+          Target: target,
+          Change: hasStockChange ? `${log.previousStock} -> ${log.newStock} ${log.measurementUnit}` : '',
+          Notes: log.notes,
+        }
+      })
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Activity Logs')
+      XLSX.writeFile(wb, `activity_logs_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (err) {
+      console.error('Failed to export logs:', err)
+      alert(err instanceof Error ? err.message : 'Failed to export logs.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -100,6 +162,16 @@ function LogsPage() {
           <div className="flex-1">
             <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f] dark:text-[#f3f4f6]">Activity Logs</h1>
           </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-document.svg" alt="export" />
+            <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] hidden sm:inline">
+              {exporting ? 'Exporting...' : 'Export to Excel'}
+            </span>
+          </button>
           <NotificationBell />
         </header>
 
@@ -193,8 +265,23 @@ function LogsPage() {
                             ? `${log.previousStock} → ${log.newStock} ${log.measurementUnit}`
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] max-w-[260px] truncate">
-                          {log.notes || '—'}
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] max-w-[280px]">
+                          {log.notes ? (
+                            <>
+                              <span className={expandedNotes.has(log._id) ? 'block whitespace-normal break-words' : 'block truncate'}>
+                                {log.notes}
+                              </span>
+                              {log.notes.length > 42 && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNote(log._id)}
+                                  className="text-xs font-semibold text-[#636AE8] hover:underline mt-0.5"
+                                >
+                                  {expandedNotes.has(log._id) ? 'Show less' : 'Show more'}
+                                </button>
+                              )}
+                            </>
+                          ) : '—'}
                         </td>
                       </tr>
                     )
