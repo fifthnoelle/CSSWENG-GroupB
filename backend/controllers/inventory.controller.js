@@ -7,7 +7,7 @@ const MAX_TYPE_LENGTH = 50;
 const MAX_UNIT_LENGTH = 20;
 // 2.3.2 / 2.3.3 — allow-listed characters and max length for free-text fields.
 // Anything outside this is REJECTED outright (never trimmed/sanitized then saved).
-const TEXT_FIELD_PATTERN = /^[A-Za-z0-9 .,'\-/]+$/;
+const TEXT_FIELD_PATTERN = /^[A-Za-z0-9 .,'&\-/]+$/;
 
 function validateTextField(value, fieldLabel, maxLength) {
     if (typeof value !== 'string' || value.trim().length === 0) {
