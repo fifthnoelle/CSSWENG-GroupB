@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
 import { getMonthlySummary, getInactiveItems, getAccountActivity } from '../services/reports.service'
@@ -114,6 +115,54 @@ function ReportsPage() {
   useEffect(() => { loadInactive() }, [loadInactive])
   useEffect(() => { loadAccountActivity() }, [loadAccountActivity])
 
+  function handleExportExcel() {
+    const wb = XLSX.utils.book_new()
+
+    const stockRows = items.map(item => ({
+      Item: item.itemName,
+      Type: item.itemType,
+      Unit: item.measurementUnit,
+      'Beginning Stock': item.beginningStock,
+      Purchases: item.purchases,
+      Usage: item.usage,
+      'Ending Stock': item.endingStock,
+    }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockRows), 'Stock Summary')
+
+    const unusedRows = inactiveItems.map(item => ({
+      Item: item.itemName,
+      Unit: item.measurementUnit,
+      'Last Used': item.lastUsedAt ? new Date(item.lastUsedAt).toLocaleDateString() : 'Never used',
+    }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unusedRows), 'Unused Items')
+
+    if (accountActivity) {
+      const loginRows: Record<string, string | number>[] = accountActivity.loginActivity.byDay.map(d => ({
+        Date: d.date,
+        'Successful Logins': d.success,
+        'Failed Logins': d.failed,
+      }))
+      loginRows.push({
+        Date: 'TOTAL',
+        'Successful Logins': accountActivity.loginActivity.totalSuccess,
+        'Failed Logins': accountActivity.loginActivity.totalFailed,
+      })
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(loginRows), 'Login Activity')
+
+      const changeRows = accountActivity.accountChanges.events.map(e => ({
+        Date: new Date(e.actionTime).toLocaleString(),
+        Change: accountChangeLabels[e.actionType]?.label || e.actionType,
+        By: e.userName,
+        Account: e.userTargetName,
+        Notes: e.notes,
+      }))
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(changeRows), 'Account Changes')
+    }
+
+    const rangeLabel = resolvedRange ? `${resolvedRange.startDate}_to_${resolvedRange.endDate}` : 'export'
+    XLSX.writeFile(wb, `reports_${rangeLabel}.xlsx`)
+  }
+
   if (!user) return null
 
   return (
@@ -135,6 +184,13 @@ function ReportsPage() {
           <div className="flex-1">
             <h1 className="font-[Archivo] text-lg font-bold text-[#171a1f] dark:text-[#f3f4f6]">Reports</h1>
           </div>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors mr-2"
+          >
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-document.svg" alt="export" />
+            <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] hidden sm:inline">Export to Excel</span>
+          </button>
           <NotificationBell />
         </header>
 
