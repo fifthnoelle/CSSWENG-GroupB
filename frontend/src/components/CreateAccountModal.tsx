@@ -1,5 +1,31 @@
 import { useState } from 'react'
 
+// Small reusable eye / eye-off toggle button, positioned inside a password
+// field. Inline SVG (not an <img src="/assets/...">) so it can never break
+// on a missing asset file — see the same fix on the Login page.
+function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={visible ? 'Hide password' : 'Show password'}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9095a0] hover:text-[#171a1f] transition-colors"
+    >
+      {visible ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.34M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 interface Props {
   onClose: () => void
   onSave: (data: {
@@ -31,6 +57,8 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [answerTouched, setAnswerTouched]       = useState(false)
   const [error, setError]                       = useState('')
   const [isSaving, setIsSaving]                 = useState(false)
+  const [showPassword, setShowPassword]         = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Mirrors the backend policy in utils/auth.js — checked live so the user
   // never has to round-trip to the server to find out a rule was unmet.
@@ -169,16 +197,19 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           {/* Password */}
           <div>
             <label className={labelClass}>Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onBlur={() => setPasswordTouched(true)}
-              placeholder="••••••••"
-              className={`${inputClass} ${passwordTouched && !passwordValid ? 'border-[#FECDD3]' : ''}`}
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onBlur={() => setPasswordTouched(true)}
+                placeholder="••••••••"
+                className={`${inputClass} pr-10 ${passwordTouched && !passwordValid ? 'border-[#FECDD3]' : ''}`}
+              />
+              <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+            </div>
             {(passwordTouched || password.length > 0) && (
               <ul className="mt-2 flex flex-col gap-0.5">
                 {passwordRules.map(rule => (
@@ -199,16 +230,19 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           {/* Confirm Password */}
           <div>
             <label className={labelClass}>Confirm Password</label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              onBlur={() => setConfirmTouched(true)}
-              placeholder="••••••••"
-              className={`${inputClass} ${confirmTouched && !passwordsMatch ? 'border-[#FECDD3]' : ''}`}
-            />
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                onBlur={() => setConfirmTouched(true)}
+                placeholder="••••••••"
+                className={`${inputClass} pr-10 ${confirmTouched && !passwordsMatch ? 'border-[#FECDD3]' : ''}`}
+              />
+              <PasswordVisibilityToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+            </div>
             {confirmTouched && !passwordsMatch && (
               <p className="mt-1 text-xs font-[Archivo] text-[#BE123C]">
                 Passwords do not match.
