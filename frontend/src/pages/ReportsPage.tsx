@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
@@ -32,11 +33,6 @@ const accountChangeLabels: Record<string, { label: string; bg: string; text: str
   'create-user': { label: 'Account Created', bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
   'delete-user': { label: 'Account Deleted', bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
   'edit-role':   { label: 'Role Changed',    bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
-}
-
-function formatEventTime(value: string) {
-  const d = new Date(value)
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 function ReportsPage() {
@@ -431,37 +427,12 @@ function ReportsPage() {
               {accountActivity.accountChanges.events.length === 0 ? (
                 <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No account changes in this range.</p>
               ) : (
-                <div className="border border-[#dee1e6] dark:border-white/10 rounded-xl overflow-x-auto">
-                  <table className="w-full text-left min-w-[560px]">
-                    <thead className="bg-[#f3f4f6]/60 dark:bg-white/5">
-                      <tr>
-                        <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Date</th>
-                        <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Change</th>
-                        <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">By</th>
-                        <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Account</th>
-                        <th className="px-4 py-3 font-[Archivo] text-xs font-semibold text-[#565e6c] dark:text-[#9095a0]">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {accountActivity.accountChanges.events.map((event, i) => {
-                        const badge = accountChangeLabels[event.actionType] || { label: event.actionType, bg: 'bg-[#f3f4f6]', text: 'text-[#565e6c]' }
-                        return (
-                          <tr key={`${event.actionTime}-${i}`} className="border-t border-[#dee1e6] dark:border-white/10">
-                            <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] whitespace-nowrap">{formatEventTime(event.actionTime)}</td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs font-semibold font-[Archivo] px-2.5 py-1 rounded-full ${badge.bg} ${badge.text} whitespace-nowrap`}>
-                                {badge.label}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{event.userName}</td>
-                            <td className="px-4 py-3 font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{event.userTargetName || '—'}</td>
-                            <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">{event.notes || '—'}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <Link
+                  to="/logs?logType=accounts"
+                  className="inline-flex items-center gap-2 font-[Archivo] text-sm font-semibold text-[#636AE8] hover:underline"
+                >
+                  View the full account activity record in Activity Logs →
+                </Link>
               )}
             </>
           )}
