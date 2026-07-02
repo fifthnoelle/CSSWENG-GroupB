@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import Sidebar from '../components/Sidebar'
 import NotificationBell from '../components/NotificationBell'
@@ -44,26 +45,21 @@ function formatDate(value: string) {
 
 function LogsPage() {
   const { user } = useUser()
+  const [searchParams] = useSearchParams()
   const [logs, setLogs] = useState<Log[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [logType, setLogType] = useState<'' | 'inventory' | 'accounts'>('')
+  const [logType, setLogType] = useState<'' | 'inventory' | 'accounts'>(() => {
+    const fromUrl = searchParams.get('logType')
+    return fromUrl === 'inventory' || fromUrl === 'accounts' ? fromUrl : ''
+  })
   const [sort, setSort] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState(false)
-
-  function toggleNote(id: string) {
-    setExpandedNotes(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  const [detailLog, setDetailLog] = useState<Log | null>(null)
 
   const loadLogs = useCallback(async () => {
     setLoading(true)
@@ -228,6 +224,8 @@ function LogsPage() {
 
           {/* Table */}
           {!loading && !error && logs.length > 0 && (
+            <>
+            <p className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280] mb-2">Click a row to see the full entry, including the complete notes.</p>
             <div className="border border-[#dee1e6] dark:border-white/10 rounded-xl overflow-x-auto">
               <table className="w-full text-left min-w-[640px]">
                 <thead className="bg-[#f3f4f6]/60 dark:bg-white/5">
@@ -249,7 +247,11 @@ function LogsPage() {
                     const hasStockChange = log.logType === 'inventory' &&
                       (log.actionType === 'used-today' || log.actionType === 'restock')
                     return (
-                      <tr key={log._id} className="border-t border-[#dee1e6] dark:border-white/10">
+                      <tr
+                        key={log._id}
+                        onClick={() => setDetailLog(log)}
+                        className="border-t border-[#dee1e6] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5"
+                      >
                         <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] whitespace-nowrap">
                           {formatDate(log.actionTime)}
                         </td>
@@ -265,23 +267,8 @@ function LogsPage() {
                             ? `${log.previousStock} → ${log.newStock} ${log.measurementUnit}`
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] max-w-[280px]">
-                          {log.notes ? (
-                            <>
-                              <span className={expandedNotes.has(log._id) ? 'block whitespace-normal break-words' : 'block truncate'}>
-                                {log.notes}
-                              </span>
-                              {log.notes.length > 42 && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleNote(log._id)}
-                                  className="text-xs font-semibold text-[#636AE8] hover:underline mt-0.5"
-                                >
-                                  {expandedNotes.has(log._id) ? 'Show less' : 'Show more'}
-                                </button>
-                              )}
-                            </>
-                          ) : '—'}
+                        <td className="px-4 py-3 font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0] max-w-[200px] truncate">
+                          {log.notes || '—'}
                         </td>
                       </tr>
                     )
@@ -289,6 +276,7 @@ function LogsPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* Pagination */}
@@ -313,6 +301,72 @@ function LogsPage() {
           )}
         </main>
       </div>
+
+      {/* Full log detail — opened by clicking a row. Every field gets its
+          own full-width line here, so long notes are always fully readable
+          regardless of screen size, instead of depending on table column
+          width or a cramped inline "show more". */}
+      {detailLog && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDetailLog(null)}>
+          <div
+            className="w-full sm:max-w-[520px] sm:mx-6 max-h-[90vh] bg-white dark:bg-[#1f2128] sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#dee1e6] dark:border-white/10 shrink-0">
+              <p className="font-[Archivo] text-lg font-bold text-[#171a1f] dark:text-[#f3f4f6]">Log Entry</p>
+              <button onClick={() => setDetailLog(null)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10">
+                <img className="w-4 h-4 dark:invert" src="/assets/icon-close.svg" alt="close" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0 p-5 flex flex-col gap-4">
+              {(() => {
+                const badge = actionBadge(detailLog.actionType)
+                const target = detailLog.logType === 'accounts'
+                  ? detailLog.userTargetName
+                  : (detailLog.itemName || detailLog.itemId || '—')
+                const hasStockChange = detailLog.logType === 'inventory' &&
+                  (detailLog.actionType === 'used-today' || detailLog.actionType === 'restock')
+                return (
+                  <>
+                    <div>
+                      <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">Date</p>
+                      <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{formatDate(detailLog.actionTime)}</p>
+                    </div>
+                    <div>
+                      <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">User</p>
+                      <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{detailLog.userName}</p>
+                    </div>
+                    <div>
+                      <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">Action</p>
+                      <span className={`inline-block text-xs font-semibold font-[Archivo] px-2.5 py-1 rounded-full ${badge.bg} ${badge.text}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">Target</p>
+                      <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">{target || '—'}</p>
+                    </div>
+                    {hasStockChange && (
+                      <div>
+                        <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">Change</p>
+                        <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb]">
+                          {detailLog.previousStock} → {detailLog.newStock} {detailLog.measurementUnit}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-[Archivo] text-xs font-semibold text-[#9095a0] uppercase tracking-wide mb-1">Notes</p>
+                      <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] whitespace-pre-wrap break-words">
+                        {detailLog.notes || '—'}
+                      </p>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
