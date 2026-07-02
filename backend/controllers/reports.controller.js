@@ -66,7 +66,12 @@ const getMonthlySummary = async (req, res) => {
 
         const items = await InventoryModel.find();
 
-        const summary = await Promise.all(items.map(async (item) => {
+        // Skip items that weren't created yet as of the end of this range —
+        // otherwise a brand-new item shows up (with its current startingStock)
+        // even in a report for a period entirely before it existed.
+        const relevantItems = items.filter(item => item.createdAt < rangeEnd);
+
+        const summary = await Promise.all(relevantItems.map(async (item) => {
             const itemId = item._id.toString();
 
             const lastLogBeforeRange = await LogsModel.findOne({
@@ -75,9 +80,14 @@ const getMonthlySummary = async (req, res) => {
                 actionTime: { $lt: rangeStart }
             }).sort({ actionTime: -1 });
 
+            // If there's no log before the range, the item's own create-item
+            // log (which always exists) would have satisfied this query had
+            // the item existed before rangeStart — so its absence means the
+            // item was created ON OR AFTER rangeStart, and its stock at the
+            // start of this period was 0, not its (current) startingStock.
             const beginningStock = lastLogBeforeRange
                 ? lastLogBeforeRange.newStock
-                : item.startingStock;
+                : 0;
 
             const rangeLogs = await LogsModel.find({
                 itemId,
@@ -90,6 +100,9 @@ const getMonthlySummary = async (req, res) => {
             for (const log of rangeLogs) {
                 if (log.actionType === 'restock') purchases += log.quantityChanged;
                 else if (log.actionType === 'used-today') usage += log.quantityChanged;
+                // Item creation counts as an initial "purchase" too, so
+                // beginning + purchases - usage reconciles to ending stock.
+                else if (log.actionType === 'create-item') purchases += (log.newStock - log.previousStock);
             }
 
             const endingStock = rangeLogs.length > 0
