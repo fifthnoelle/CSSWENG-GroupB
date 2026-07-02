@@ -5,6 +5,32 @@ interface Props {
   onClose: () => void
 }
 
+// Small reusable eye / eye-off toggle button, positioned inside a password
+// field. Inline SVG (not an <img src="/assets/...">) so it can never break
+// on a missing asset file — see the same fix on the Login page.
+function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={visible ? 'Hide password' : 'Show password'}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9095a0] hover:text-[#171a1f] transition-colors"
+    >
+      {visible ? (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.34M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function ChangePasswordModal({ onClose }: Props) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -12,6 +38,9 @@ function ChangePasswordModal({ onClose }: Props) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   async function handleSave() {
     setError('')
@@ -77,26 +106,32 @@ function ChangePasswordModal({ onClose }: Props) {
                 <label htmlFor="currentPassword" className="font-[Archivo] text-sm font-semibold text-[#171a1f]">
                   Current Password
                 </label>
-                <input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-[#dee1e6] px-3 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="currentPassword"
+                    type={showCurrent ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    className="w-full rounded-md border border-[#dee1e6] pl-3 pr-10 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
+                  />
+                  <PasswordVisibilityToggle visible={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />
+                </div>
               </div>
 
               <div>
                 <label htmlFor="newPassword" className="font-[Archivo] text-sm font-semibold text-[#171a1f]">
                   New Password
                 </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-[#dee1e6] px-3 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="newPassword"
+                    type={showNew ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full rounded-md border border-[#dee1e6] pl-3 pr-10 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
+                  />
+                  <PasswordVisibilityToggle visible={showNew} onToggle={() => setShowNew(!showNew)} />
+                </div>
                 <p className="mt-1 text-xs font-[Archivo] text-[#9095a0]">
                   At least 12 characters, with uppercase, lowercase, a number, and a special character.
                 </p>
@@ -106,13 +141,16 @@ function ChangePasswordModal({ onClose }: Props) {
                 <label htmlFor="confirmPassword" className="font-[Archivo] text-sm font-semibold text-[#171a1f]">
                   Confirm New Password
                 </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-[#dee1e6] px-3 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full rounded-md border border-[#dee1e6] pl-3 pr-10 py-2 text-sm text-[#171a1f] outline-none transition focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20"
+                  />
+                  <PasswordVisibilityToggle visible={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} />
+                </div>
               </div>
             </>
           )}
