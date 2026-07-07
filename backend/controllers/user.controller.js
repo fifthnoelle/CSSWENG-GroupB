@@ -9,6 +9,13 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 1000 * 60 * 15; // 15 minute lockout, adjust as needed
 const MIN_PASSWORD_AGE_MS = 1000 * 60 * 60 * 24; // 2.1.10 — 1 day
 
+// Escapes regex metacharacters in user-supplied search text before it's
+// interpolated into a $regex filter, so characters like ( ) * + ? etc.
+// can't break the query or degrade search results.
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Force-logout helper — destroys every server-side session belonging to a
 // user. req.session.role/email are cached at login time, so a role change
 // (or account deletion) wouldn't otherwise take effect until that user's
@@ -397,8 +404,11 @@ const deleteUser = async (req, res) => {
     try {
         const userId = req.params.id;
 
-        // Prevent the admin from deleting their own account while logged in
-        if (req.session.userId === userId) {
+        // Prevent the admin from deleting their own account while logged in.
+        // req.session.userId is a Mongoose ObjectId, req.params.id is a plain
+        // string — must normalize both to strings before comparing, or this
+        // check silently never fires.
+        if (String(req.session.userId) === String(userId)) {
             return res.status(400).json({ error: "You cannot delete your own active session account." });
         }
 
@@ -451,12 +461,13 @@ const searchUsers = async (req, res) => {
             return res.status(400).json({ error: "Search query is required" });
         }
 
+        const safeQuery = escapeRegex(query);
         const users = await UsersModel.find({
             $or: [
-                { firstName: { $regex: query, $options: 'i' } },
-                { lastName: { $regex: query, $options: 'i' } },
-                { email: { $regex: query, $options: 'i' } },
-                { role: { $regex: query, $options: 'i' } }
+                { firstName: { $regex: safeQuery, $options: 'i' } },
+                { lastName: { $regex: safeQuery, $options: 'i' } },
+                { email: { $regex: safeQuery, $options: 'i' } },
+                { role: { $regex: safeQuery, $options: 'i' } }
             ]
         }).select("-password");
 
