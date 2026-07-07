@@ -32,6 +32,13 @@ function validateNonNegativeNumber(value, fieldLabel) {
     return null;
 }
 
+// Escapes regex metacharacters in user-supplied search/name text before it's
+// interpolated into a $regex filter, so characters like ( ) * + ? etc.
+// can't break the query or degrade search/duplicate-check results.
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // 2.4.4 — every validation failure is logged (out-of-range, bad characters, etc.)
 async function logValidationFailure(req, reason) {
     await createLog({
@@ -68,7 +75,7 @@ const createItem = async (req, res) => {
 
         // EC11 — block duplicate item names (case-insensitive)
         const existing = await InventoryModel.findOne({
-            itemName: { $regex: `^${itemName.trim()}$`, $options: 'i' }
+            itemName: { $regex: `^${escapeRegex(itemName.trim())}$`, $options: 'i' }
         });
         if (existing) {
             return res.status(409).json({ error: "An item with this name already exists" });
@@ -135,7 +142,7 @@ const searchItems = async (req, res) => {
         }
 
         const items = await InventoryModel.find({
-            itemName: { $regex: query, $options: 'i' }
+            itemName: { $regex: escapeRegex(query), $options: 'i' }
         });
 
         return res.status(200).json(items);
@@ -190,6 +197,18 @@ const updateItem = async (req, res) => {
         const existingItem = await InventoryModel.findById(itemId);
         if (!existingItem) {
             return res.status(404).json({ error: "Item not found" });
+        }
+
+        // EC11 — block renaming into a duplicate (case-insensitive), same
+        // rule createItem already enforces on creation.
+        if (updateData.itemName !== undefined) {
+            const duplicate = await InventoryModel.findOne({
+                _id: { $ne: itemId },
+                itemName: { $regex: `^${escapeRegex(updateData.itemName.trim())}$`, $options: 'i' }
+            });
+            if (duplicate) {
+                return res.status(409).json({ error: "An item with this name already exists" });
+            }
         }
 
         const updatedItem = await InventoryModel.findByIdAndUpdate(
