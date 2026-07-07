@@ -29,6 +29,8 @@ const actionLabels: Record<string, { label: string; bg: string; text: string }> 
   'login-failed':     { label: 'Login Failed',      bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
   'change-password':  { label: 'Password Changed',  bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
   'forgot-password':  { label: 'Password Reset',    bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
+  'access-control-failure': { label: 'Access Denied',      bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'validation-failure':     { label: 'Validation Failed',  bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
 }
 
 function actionBadge(actionType: string) {
