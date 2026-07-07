@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login} from '../services/auth.service'
 import { useUser } from '../context/UserContext'
@@ -19,7 +19,8 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
-  const handleLogin = async () => {
+  const handleLogin = async (event?: FormEvent) => {
+    event?.preventDefault()
     setError(null)
     setLoading(true)
 
@@ -77,7 +78,7 @@ function Login() {
           <p className="font-[Archivo] text-sm text-[#9095a0] dark:text-[#6b7280] mt-1">Sign in to continue to your account</p>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <form onSubmit={handleLogin} className="flex flex-col gap-6">
           {/* Email */}
           <div className="flex flex-col gap-1">
             <label htmlFor="email" className="text-sm font-[Inter] text-[#424955] dark:text-[#d1d5db]">Email</label>
@@ -132,14 +133,13 @@ function Login() {
 
           <button
             id="btn-login"
-            type="button"
-            onClick={handleLogin}
+            type="submit"
             disabled={loading}
             className="w-full h-14 bg-[#93191d] rounded-md text-white text-base font-[Inter] hover:bg-[#7a1518] transition-colors disabled:opacity-70"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   )
