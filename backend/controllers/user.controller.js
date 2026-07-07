@@ -16,6 +16,16 @@ function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Normalizes an email the same way the schema does (trim + lowercase) so
+// lookups match regardless of how the caller capitalized it. The schema's
+// `lowercase`/`trim` options only apply to values being SAVED — a query
+// filter like findOne({ email }) is compared as-is, so every findOne on
+// email must normalize its input the same way or "Jane@x.com" and
+// "jane@x.com" won't match each other.
+function normalizeEmail(email) {
+    return typeof email === 'string' ? email.trim().toLowerCase() : email;
+}
+
 // Force-logout helper — destroys every server-side session belonging to a
 // user. req.session.role/email are cached at login time, so a role change
 // (or account deletion) wouldn't otherwise take effect until that user's
@@ -58,16 +68,17 @@ async function destroySessionsForUser(userId) {
 */
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email: rawEmail, password } = req.body;
 
         // 2.1.3 — generic message used for every failure case below, so the
         // response never reveals whether the email or the password was wrong.
         const GENERIC_FAIL = "Invalid email and/or password";
 
-        if (!email || !password) {
+        if (!rawEmail || !password) {
             return res.status(400).json({ error: "Email and password are required" });
         }
 
+        const email = normalizeEmail(rawEmail);
         const user = await UsersModel.findOne({ email });
 
         if (!user) {
@@ -249,9 +260,9 @@ const getAllUsers = async (req, res) => {
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
     try {
-        const { email, firstName, lastName, password, role, securityQuestion, securityAnswer } = req.body;
+        const { email: rawEmail, firstName, lastName, password, role, securityQuestion, securityAnswer } = req.body;
 
-        if (!email || !firstName || !lastName || !password) {
+        if (!rawEmail || !firstName || !lastName || !password) {
             return res.status(400).json({ error: "All fields are required" });
         }
         if (!securityQuestion || !securityQuestion.trim()) {
@@ -262,6 +273,7 @@ const register = async (req, res) => {
             return res.status(400).json({ error: answerError });
         }
 
+        const email = normalizeEmail(rawEmail);
         const existingUser = await UsersModel.findOne({ email });
         if (existingUser) {
             return res.status(409).json({ error: "User already exists with the same email" });
@@ -308,6 +320,12 @@ const register = async (req, res) => {
         });
 
     } catch (error) {
+        // A unique-index violation on email means two requests raced past the
+        // findOne check above — same outcome as the normal duplicate check,
+        // just caught at the DB layer instead.
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(409).json({ error: "User already exists with the same email" });
+        }
         console.error("Error saving user:", error);
         res.status(500).json({ error: "Error creating user" });
     }
@@ -318,12 +336,13 @@ const register = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const { email, firstName, lastName, role, password } = req.body;
+        const { email: rawEmail, firstName, lastName, role, password } = req.body;
 
-        if (!email || !firstName || !lastName) {
+        if (!rawEmail || !firstName || !lastName) {
             return res.status(400).json({ error: "Email, first name, and last name are required" });
         }
 
+        const email = normalizeEmail(rawEmail);
         const existingUser = await UsersModel.findOne({ email, _id: { $ne: userId } });
         if (existingUser) {
             return res.status(409).json({ error: "Another user already has this email" });
@@ -394,6 +413,9 @@ const updateUser = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(409).json({ error: "Another user already has this email" });
+        }
         console.error("Error in updateUser:", error);
         res.status(500).json({ error: "Internal server error" });
     }
@@ -559,11 +581,12 @@ const GENERIC_RECOVERY_FAIL = "If an account exists for this email with a securi
 
 const getSecurityQuestion = async (req, res) => {
     try {
-        const { email } = req.body;
-        if (!email) {
+        const { email: rawEmail } = req.body;
+        if (!rawEmail) {
             return res.status(400).json({ error: "Email is required" });
         }
 
+        const email = normalizeEmail(rawEmail);
         const user = await UsersModel.findOne({ email });
         if (!user || !user.securityQuestion) {
             // Don't reveal whether the email exists at all.
@@ -591,11 +614,12 @@ const getSecurityQuestion = async (req, res) => {
 // from forcing churn; it shouldn't block a legitimate user who lost access.
 const resetPasswordWithAnswer = async (req, res) => {
     try {
-        const { email, securityAnswer, newPassword } = req.body;
-        if (!email || !securityAnswer || !newPassword) {
+        const { email: rawEmail, securityAnswer, newPassword } = req.body;
+        if (!rawEmail || !securityAnswer || !newPassword) {
             return res.status(400).json({ error: "Email, security answer, and new password are required" });
         }
 
+        const email = normalizeEmail(rawEmail);
         const user = await UsersModel.findOne({ email });
         if (!user || !user.securityQuestion) {
             return res.status(404).json({ error: GENERIC_RECOVERY_FAIL });
