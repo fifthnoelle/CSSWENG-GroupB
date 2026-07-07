@@ -28,11 +28,13 @@ const avatarColors = [
 function UserCard({
   user,
   colorIndex,
+  isSelf,
   onEditClick,
   onRemoveClick,
 }: {
   user: User
   colorIndex: number
+  isSelf: boolean
   onEditClick: () => void
   onRemoveClick: () => void
 }) {
@@ -76,12 +78,14 @@ function UserCard({
               >
                 Edit Account
               </button>
-              <button
-                onClick={() => { setMenuOpen(false); onRemoveClick(); }}
-                className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#93191d] dark:text-[#fca5a5] hover:bg-[#fff5f5] dark:hover:bg-white/10 cursor-pointer"
-              >
-                Remove Account
-              </button>
+              {!isSelf && (
+                <button
+                  onClick={() => { setMenuOpen(false); onRemoveClick(); }}
+                  className="w-full text-left px-4 py-2.5 text-sm font-[Archivo] text-[#93191d] dark:text-[#fca5a5] hover:bg-[#fff5f5] dark:hover:bg-white/10 cursor-pointer"
+                >
+                  Remove Account
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -216,6 +220,7 @@ function AccountManager() {
   const adminCount = users.filter(u => u.role === 'admin').length
   const isEditingLastAdmin = !!userToEdit && userToEdit.role === 'admin' && adminCount <= 1
   const isRemovingLastAdmin = !!userToRemove && userToRemove.role === 'admin' && adminCount <= 1
+  const isRemovingSelf = !!userToRemove && !!currentUser && userToRemove._id === currentUser._id
 
 
   if (!currentUser) return null
@@ -313,6 +318,7 @@ function AccountManager() {
                   key={user._id}
                   user={user}
                   colorIndex={i}
+                  isSelf={user._id === currentUser._id}
                   onEditClick={() => setUserToEdit(user)}
                   onRemoveClick={() => setUserToRemove(user)}
                 />
@@ -349,6 +355,7 @@ function AccountManager() {
         <RemoveAccountModal
           user={userToRemove}
           isLastAdmin={isRemovingLastAdmin}
+          isSelf={isRemovingSelf}
           onClose={() => setUserToRemove(null)}
           onConfirm={handleRemove}
         />
