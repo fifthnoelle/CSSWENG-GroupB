@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, FormEvent } from 'react'
 
 // Small reusable eye / eye-off toggle button, positioned inside a password
 // field. Inline SVG (not an <img src="/assets/...">) so it can never break
@@ -9,7 +9,7 @@ function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onT
       type="button"
       onClick={onToggle}
       aria-label={visible ? 'Hide password' : 'Show password'}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9095a0] hover:text-[#171a1f] transition-colors"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9095a0] hover:text-[#171a1f] dark:hover:text-[#e5e7eb] transition-colors"
     >
       {visible ? (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -73,7 +73,8 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
   const answerValid = securityAnswer.trim().length >= 4
 
-  async function handleCreate() {
+  async function handleCreate(event?: FormEvent) {
+    event?.preventDefault()
     setPasswordTouched(true)
     setConfirmTouched(true)
     setAnswerTouched(true)
@@ -104,25 +105,30 @@ function CreateAccountModal({ onClose, onSave }: Props) {
     }
   }
 
-  const inputClass = "w-full h-10 px-3 border border-[#dee1e6] rounded-md text-sm font-[Archivo] text-[#171a1f] placeholder:text-[#565e6c] outline-none bg-[#f3f4f6]/10 focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20 transition"
-  const labelClass = "block font-[Inter] text-sm font-semibold text-[#171a1f] mb-2"
+  const inputClass = "w-full h-10 px-3 border border-[#dee1e6] dark:border-white/10 rounded-md text-sm font-[Archivo] text-[#171a1f] dark:text-[#e5e7eb] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-[#f3f4f6]/10 dark:bg-white/5 focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20 transition"
+  const labelClass = "block font-[Inter] text-sm font-semibold text-[#171a1f] dark:text-[#e5e7eb] mb-2"
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 max-h-[92vh] bg-white sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden flex flex-col">
+      <div className="w-full sm:max-w-[480px] md:max-w-[560px] sm:mx-6 max-h-[92vh] bg-white dark:bg-[#1f2128] sm:rounded-xl rounded-t-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#dee1e6] shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#dee1e6] dark:border-white/10 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#636AE8]/10 rounded-md flex items-center justify-center shrink-0">
-              <img className="w-6 h-6" src="/assets/icon-add-square.svg" alt="create account" />
+              <img className="w-6 h-6 dark:invert" src="/assets/icon-add-square.svg" alt="create account" />
             </div>
-            <p className="font-[Archivo] text-lg font-bold text-[#171a1f] tracking-tight">Create Account</p>
+            <p className="font-[Archivo] text-lg font-bold text-[#171a1f] dark:text-[#f3f4f6] tracking-tight">Create Account</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 cursor-pointer">
-            <img className="w-4 h-4" src="/assets/icon-close.svg" alt="close" />
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer">
+            <img className="w-4 h-4 dark:invert" src="/assets/icon-close.svg" alt="close" />
           </button>
         </div>
+
+        {/* Form spans the scrollable body + fixed footer, so pressing Enter
+            in any field (and clicking the Create button, wherever it lives)
+            both submit the same way. */}
+        <form onSubmit={handleCreate} className="flex flex-col flex-1 min-h-0">
 
         {/* Scrollable body — header/footer stay fixed, everything else scrolls
             so it's reachable no matter how short the viewport is (this is
@@ -133,7 +139,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
         <div className="p-5 flex flex-col gap-4">
 
           {error && (
-            <div className="bg-[#FFE4E6] border border-[#FECDD3] text-[#BE123C] text-sm font-[Archivo] rounded-md px-3 py-2">
+            <div className="bg-[#FFE4E6] dark:bg-[#7f1d1d] border border-[#FECDD3] dark:border-[#991b1b] text-[#BE123C] dark:text-[#fca5a5] text-sm font-[Archivo] rounded-md px-3 py-2">
               {error}
             </div>
           )}
@@ -216,7 +222,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
                   <li
                     key={rule.label}
                     className={`text-xs font-[Archivo] flex items-center gap-1.5 ${
-                      rule.met ? 'text-[#047857]' : 'text-[#9095a0]'
+                      rule.met ? 'text-[#047857] dark:text-[#34d399]' : 'text-[#9095a0] dark:text-[#6b7280]'
                     }`}
                   >
                     <span>{rule.met ? '✓' : '○'}</span>
@@ -244,7 +250,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
               <PasswordVisibilityToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
             </div>
             {confirmTouched && !passwordsMatch && (
-              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C]">
+              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C] dark:text-[#fca5a5]">
                 Passwords do not match.
               </p>
             )}
@@ -278,7 +284,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
                   <option value="admin">Admin</option>
                 </select>
                 <img
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
                   src="/assets/icon-arrow-down.svg"
                   alt="chevron"
                 />
@@ -314,11 +320,11 @@ function CreateAccountModal({ onClose, onSave }: Props) {
               className={`${inputClass} ${answerTouched && !answerValid ? 'border-[#FECDD3]' : ''}`}
             />
             {answerTouched && !answerValid ? (
-              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C]">
+              <p className="mt-1 text-xs font-[Archivo] text-[#BE123C] dark:text-[#fca5a5]">
                 Security answer must be at least 4 characters long.
               </p>
             ) : (
-              <p className="mt-1 text-xs font-[Archivo] text-[#9095a0]">
+              <p className="mt-1 text-xs font-[Archivo] text-[#9095a0] dark:text-[#6b7280]">
                 Pick a question with a unique, hard-to-guess answer — avoid common ones like "favorite color."
               </p>
             )}
@@ -328,16 +334,17 @@ function CreateAccountModal({ onClose, onSave }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-[#dee1e6] flex justify-end gap-3 bg-[#f3f4f6]/10 shrink-0">
+        <div className="px-5 py-4 border-t border-[#dee1e6] dark:border-white/10 flex justify-end gap-3 bg-[#f3f4f6]/10 dark:bg-white/5 shrink-0">
           <button
+            type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 px-5 border border-[#dee1e6] dark:border-white/10 rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] bg-white dark:bg-[#1f2128] hover:bg-gray-50 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
-            onClick={handleCreate}
+            type="submit"
             disabled={
               isSaving ||
               !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
@@ -348,6 +355,8 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             {isSaving ? 'Creating...' : 'Create'}
           </button>
         </div>
+
+        </form>
 
       </div>
     </div>
