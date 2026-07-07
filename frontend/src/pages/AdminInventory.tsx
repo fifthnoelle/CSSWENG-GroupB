@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import type { InventoryItem, StockStatus, ActionType } from '../types'
 import StockUpdateModal from '../components/StockUpdateModal'
 import ItemFormModal from '../components/ItemFormModal'
@@ -105,6 +106,7 @@ function AdminInventory() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | StockStatus>('all')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const filterLabels: Record<'all' | StockStatus, string> = {
     all: 'All',
@@ -197,6 +199,32 @@ function AdminInventory() {
     }
   }
 
+  // Exports whatever's currently on screen — so filtering to "Low Stock"
+  // first and then exporting gives a ready-made restock/shopping list,
+  // same idea as the Excel export already on Logs and Reports.
+  function handleExportExcel() {
+    setExporting(true)
+    try {
+      const rows = visibleItems.map(item => ({
+        Item: item.itemName,
+        Type: item.itemType,
+        Status: statusConfig[getStatus(item)].label,
+        'Current Stock': item.currentStock,
+        'Starting Stock': item.startingStock,
+        'Low Stock Threshold': item.lowStockThreshold,
+        Unit: item.measurementUnit,
+      }))
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Inventory')
+      XLSX.writeFile(wb, `inventory_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (err) {
+      console.error('Failed to export inventory:', err)
+      alert(err instanceof Error ? err.message : 'Failed to export inventory.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -225,6 +253,16 @@ function AdminInventory() {
               className="flex-1 text-sm font-[Archivo] text-[#565e6c] dark:text-[#d1d5db] placeholder:text-[#565e6c] dark:placeholder:text-[#6b7280] outline-none bg-transparent"
             />
           </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting || visibleItems.length === 0}
+            className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <img className="w-4 h-4 shrink-0 dark:invert" src="/assets/icon-document.svg" alt="export" />
+            <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] hidden sm:inline">
+              {exporting ? 'Exporting...' : 'Export to Excel'}
+            </span>
+          </button>
           <NotificationBell />
         </header>
 
