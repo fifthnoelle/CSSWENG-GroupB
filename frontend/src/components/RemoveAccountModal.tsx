@@ -35,18 +35,18 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="w-full max-w-[480px] bg-white rounded-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden">
+      <div className="w-full max-w-[480px] bg-white dark:bg-[#1f2128] rounded-2xl shadow-[0px_8.5px_13.75px_0px_#171a1f38,_0px_0px_2px_0px_#171a1f14] overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#dee1e6]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#dee1e6] dark:border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#FFE4E6] rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 bg-[#FFE4E6] dark:bg-[#7f1d1d] rounded-lg flex items-center justify-center shrink-0">
               <img className="w-5 h-5" src="/assets/icon-trash.svg" alt="remove" />
             </div>
-            <p className="font-[Archivo] text-lg font-semibold text-[#171a1f]">Remove Account</p>
+            <p className="font-[Archivo] text-lg font-semibold text-[#171a1f] dark:text-[#f3f4f6]">Remove Account</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100">
-            <img className="w-4 h-4" src="/assets/icon-close.svg" alt="close" />
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10">
+            <img className="w-4 h-4 dark:invert" src="/assets/icon-close.svg" alt="close" />
           </button>
         </div>
 
@@ -54,29 +54,29 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
         <div className="p-6 flex flex-col gap-4">
 
           {error && (
-            <div className="bg-[#FFE4E6] border border-[#FECDD3] text-[#BE123C] text-sm font-[Archivo] rounded-md px-3 py-2">
+            <div className="bg-[#FFE4E6] dark:bg-[#7f1d1d] border border-[#FECDD3] dark:border-[#991b1b] text-[#BE123C] dark:text-[#fca5a5] text-sm font-[Archivo] rounded-md px-3 py-2">
               {error}
             </div>
           )}
 
           {isSelf ? (
             /* Blocked outright — you can't remove your own active session account */
-            <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] rounded-lg border border-[#FECDD3]">
+            <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] dark:bg-[#7f1d1d]/40 rounded-lg border border-[#FECDD3] dark:border-[#991b1b]">
               <img className="w-5 h-5 shrink-0 mt-0.5" src="/assets/icon-warning-triangle.svg" alt="warning" />
               <div>
-                <p className="font-[Archivo] text-sm font-bold text-[#93191d] uppercase tracking-wide">Can't remove this account</p>
-                <p className="font-[Archivo] text-sm text-[#171a1f] mt-1">
+                <p className="font-[Archivo] text-sm font-bold text-[#93191d] dark:text-[#fca5a5] uppercase tracking-wide">Can't remove this account</p>
+                <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] mt-1">
                   You can't remove your own account while logged in. Ask another Admin to do this instead.
                 </p>
               </div>
             </div>
           ) : isLastAdmin ? (
             /* Blocked outright — this is the system's only Admin account */
-            <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] rounded-lg border border-[#FECDD3]">
+            <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] dark:bg-[#7f1d1d]/40 rounded-lg border border-[#FECDD3] dark:border-[#991b1b]">
               <img className="w-5 h-5 shrink-0 mt-0.5" src="/assets/icon-warning-triangle.svg" alt="warning" />
               <div>
-                <p className="font-[Archivo] text-sm font-bold text-[#93191d] uppercase tracking-wide">Can't remove this account</p>
-                <p className="font-[Archivo] text-sm text-[#171a1f] mt-1">
+                <p className="font-[Archivo] text-sm font-bold text-[#93191d] dark:text-[#fca5a5] uppercase tracking-wide">Can't remove this account</p>
+                <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] mt-1">
                   <span className="font-semibold">{user.firstName} {user.lastName}</span> is the only Admin account.
                   Promote another account to Admin before removing this one.
                 </p>
@@ -85,11 +85,11 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
           ) : (
             <>
               {/* Warning box */}
-              <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] rounded-lg border border-[#FECDD3]">
+              <div className="flex items-start gap-3 p-4 bg-[#FFE4E6] dark:bg-[#7f1d1d]/40 rounded-lg border border-[#FECDD3] dark:border-[#991b1b]">
                 <img className="w-5 h-5 shrink-0 mt-0.5" src="/assets/icon-warning-triangle.svg" alt="warning" />
                 <div>
-                  <p className="font-[Archivo] text-sm font-bold text-[#93191d] uppercase tracking-wide">Warning</p>
-                  <p className="font-[Archivo] text-sm text-[#171a1f] mt-1">
+                  <p className="font-[Archivo] text-sm font-bold text-[#93191d] dark:text-[#fca5a5] uppercase tracking-wide">Warning</p>
+                  <p className="font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] mt-1">
                     Are you sure you want to remove{' '}
                     <span className="font-semibold">{user.firstName} {user.lastName}</span>?
                     This action cannot be undone.
@@ -98,7 +98,7 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
               </div>
 
               {/* Confirmation checkbox */}
-              <label className="flex items-start gap-3 p-4 border border-[#dee1e6] rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-start gap-3 p-4 border border-[#dee1e6] dark:border-white/10 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 <input
                   type="checkbox"
                   checked={confirmed}
@@ -106,10 +106,10 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
                   className="mt-0.5 w-4 h-4 accent-[#93191d] shrink-0"
                 />
                 <div>
-                  <p className="font-[Archivo] text-sm font-medium text-[#171a1f]">
+                  <p className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">
                     I understand this action will remove this account
                   </p>
-                  <p className="font-[Archivo] text-xs text-[#9095a0] mt-0.5">
+                  <p className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280] mt-0.5">
                     The user will lose access to the system immediately.
                   </p>
                 </div>
@@ -119,11 +119,11 @@ function RemoveAccountModal({ user, isLastAdmin, isSelf, onClose, onConfirm }: P
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#dee1e6] flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-[#dee1e6] dark:border-white/10 flex justify-end gap-3">
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="h-10 px-5 border border-[#dee1e6] rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] bg-white hover:bg-gray-50 transition-colors"
+            className="h-10 px-5 border border-[#dee1e6] dark:border-white/10 rounded-md font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb] bg-white dark:bg-[#1f2128] hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
           >
             {isLastAdmin || isSelf ? 'Close' : 'Cancel'}
           </button>
