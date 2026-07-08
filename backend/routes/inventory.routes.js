@@ -7,17 +7,18 @@ const {
     searchItems,
     updateItem,
     updateStock,
-    deleteItem
+    deleteItem,
+    restoreItem
 } = require("../controllers/inventory.controller");
 
 const { requireAuth, requireAdmin } = require("../utils/auth");
 
 router.use(requireAuth);
 
-// GET /inventory (Get all items) — staff + admin
+// GET /inventory (Get all items; ?archived=true for the archived view) — staff + admin
 router.get("/", getItems);
 
-// GET /inventory/search?query=xyz (Search items) — staff + admin
+// GET /inventory/search?query=xyz (Search items; ?archived=true for the archived view) — staff + admin
 router.get("/search", searchItems);
 
 // POST /inventory (Create an item) — Admin/Owner only per permissions table
@@ -29,7 +30,10 @@ router.patch("/:id", updateStock);
 // PUT /inventory/:id (Edit item details) — Admin/Owner only
 router.put("/:id", requireAdmin, updateItem);
 
-// DELETE /inventory/:id (Delete item) — Admin/Owner only
+// DELETE /inventory/:id (Archive item) — Admin/Owner only
 router.delete("/:id", requireAdmin, deleteItem);
+
+// Feature: PATCH /inventory/:id/restore (Restore an archived item) — Admin/Owner only
+router.patch("/:id/restore", requireAdmin, restoreItem);
 
 module.exports = router;
