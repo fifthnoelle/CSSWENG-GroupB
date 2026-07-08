@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../services/auth.service'
 import ChangePasswordModal from './ChangePasswordModal'
 import { useTheme } from '../context/ThemeContext'
+import { useUser } from '../context/UserContext'
 
 export interface NavItem {
   label: string
@@ -24,6 +25,22 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
   const [menuOpen, setMenuOpen] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const { theme, toggleTheme } = useTheme()
+
+  // Bug fix (#6): the backend computes a "previous login" snapshot at login
+  // time specifically so it can be reported here — the login/attempt from
+  // BEFORE the one that just happened (e.g. "a failed attempt happened
+  // before you got in"). It used to be discarded by the frontend entirely.
+  // user.lastLoginAt/lastLoginStatus, by contrast, get refreshed to reflect
+  // THIS session by the time this component reads them, so on their own
+  // they'd just always say "just now, success" right after logging in —
+  // prefer the real previousLogin snapshot when this browser session has
+  // one (i.e. right after a fresh login), and fall back to user.lastLoginAt
+  // otherwise (e.g. after a page refresh, when the snapshot isn't held
+  // anywhere anymore).
+  const { previousLogin } = useUser()
+  const lastLoginAt = previousLogin ? previousLogin.lastLoginAt : user.lastLoginAt
+  const lastLoginStatus = previousLogin ? previousLogin.lastLoginStatus : user.lastLoginStatus
+  const flaggingFailedAttempt = !!previousLogin && lastLoginStatus === 'failed'
 
   const initials = `${user.firstName[0]}${user.lastName[0]}`
   const isAdmin = user.role.toLowerCase() === 'admin'
@@ -111,9 +128,13 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 lg:left-3 lg:right-3 mb-1 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-lg overflow-hidden">
             {/* 2.1.11 — report the last use of this account to the user themself */}
-            {user.lastLoginAt && (
-              <div className="px-3 py-2 text-[11px] font-[Archivo] text-[#9095a0] dark:text-[#9095a0] border-b border-[#dee1e6] dark:border-white/10">
-                Last {user.lastLoginStatus === 'failed' ? 'attempt' : 'login'}: {new Date(user.lastLoginAt).toLocaleString()}
+            {lastLoginAt && (
+              <div className={`px-3 py-2 text-[11px] font-[Archivo] border-b border-[#dee1e6] dark:border-white/10 ${
+                flaggingFailedAttempt ? 'text-[#BE123C] dark:text-[#fca5a5]' : 'text-[#9095a0] dark:text-[#9095a0]'
+              }`}>
+                {flaggingFailedAttempt
+                  ? `⚠ Failed attempt before this login: ${new Date(lastLoginAt).toLocaleString()}${previousLogin?.lastLoginIp ? ` from ${previousLogin.lastLoginIp}` : ''}`
+                  : `Last ${lastLoginStatus === 'failed' ? 'attempt' : 'login'}: ${new Date(lastLoginAt).toLocaleString()}`}
               </div>
             )}
             <button
