@@ -1,7 +1,11 @@
 // Logs service — all API calls for the audit trail (Admin/Owner only)
 // Do NOT query MongoDB directly from UI components — use these functions only
 
-import { BASE_URL } from './auth.service'
+// Bug fix (#8): local parseError (identical to this) replaced with the
+// shared version from auth.service.ts, so user.service.ts and
+// inventory.service.ts now behave the same way on a 401 as this file
+// already did.
+import { BASE_URL, parseApiError as parseError } from './auth.service'
 import type { Log } from '../types'
 
 export interface LogsQuery {
@@ -23,18 +27,6 @@ export interface LogsResponse {
     limit: number
     total: number
     totalPages: number
-  }
-}
-
-async function parseError(res: Response, fallback: string) {
-  if (res.status === 401) {
-    window.location.href = '/login'
-  }
-  try {
-    const body = await res.json()
-    return body?.error || body?.message || fallback
-  } catch {
-    return fallback
   }
 }
 
