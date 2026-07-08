@@ -32,10 +32,14 @@ function validateNonNegativeNumber(value, fieldLabel) {
     return null;
 }
 
+// Escapes regex metacharacters in user-supplied search/name text before it's
+// interpolated into a $regex filter, so characters like ( ) * + ? etc.
+// can't break the query or degrade search/duplicate-check results.
 function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// 2.4.4 — every validation failure is logged (out-of-range, bad characters, etc.)
 async function logValidationFailure(req, reason) {
     await createLog({
         req,
@@ -55,6 +59,7 @@ const createItem = async (req, res) => {
             lowStockThreshold
         } = req.body;
 
+        // 2.3.1 — reject on any validation failure; never silently sanitize/coerce.
         const errors = [
             validateTextField(itemName, "Item name", MAX_NAME_LENGTH),
             validateTextField(itemType, "Item type", MAX_TYPE_LENGTH),
@@ -68,25 +73,30 @@ const createItem = async (req, res) => {
             return res.status(400).json({ error: errors[0] });
         }
 
+        // EC11 — block duplicate item names (case-insensitive), among active
+        // (non-archived) items only — an archived item's name is free to reuse.
         const existing = await InventoryModel.findOne({
-            itemName: { $regex: `^${escapeRegex(itemName.trim())}$`, $options: 'i' }
+            itemName: { $regex: `^${escapeRegex(itemName.trim())}$`, $options: 'i' },
+            isArchived: { $ne: true }
         });
         if (existing) {
             return res.status(409).json({ error: "An item with this name already exists" });
         }
 
+        // Create item
         const newItem = new InventoryModel({
             itemName,
             itemType,
             measurementUnit,
             startingStock,
             lowStockThreshold,
-            createdBy: req.session.email,
+            createdBy: req.session.email, // works with current system
             createdAt: new Date()
         });
 
         await newItem.save();
 
+        // Audit log — item creation
         await createLog({
             req,
             logType: 'inventory',
@@ -106,13 +116,21 @@ const createItem = async (req, res) => {
 
     } catch (error) {
         console.error("Error creating item:", error);
-        return res.status(500).json({ error: "Error creating item" });
+
+        return res.status(500).json({
+            error: "Error creating item"
+        });
     }
 };
 
+// GET ITEMS API
+// ?archived=true returns ONLY archived items (for the "Archived" view);
+// otherwise archived items are excluded from the normal inventory list.
 const getItems = async (req, res) => {
     try {
-        const items = await InventoryModel.find();
+        const showArchived = req.query.archived === 'true';
+        const filter = showArchived ? { isArchived: true } : { isArchived: { $ne: true } };
+        const items = await InventoryModel.find(filter);
         return res.status(200).json(items);
     } catch (error) {
         console.error("Error fetching items:", error);
@@ -120,15 +138,22 @@ const getItems = async (req, res) => {
     }
 };
 
+// SEARCH ITEMS API
+// ?archived=true searches within archived items instead of active ones.
 const searchItems = async (req, res) => {
     try {
         const { query } = req.query;
+
         if (!query) {
             return res.status(400).json({ error: "Search query is required" });
         }
+
+        const showArchived = req.query.archived === 'true';
         const items = await InventoryModel.find({
-            itemName: { $regex: escapeRegex(query), $options: 'i' }
+            itemName: { $regex: escapeRegex(query), $options: 'i' },
+            isArchived: showArchived ? true : { $ne: true }
         });
+
         return res.status(200).json(items);
     } catch (error) {
         console.error("Error searching items:", error);
@@ -136,6 +161,7 @@ const searchItems = async (req, res) => {
     }
 };
 
+// EDIT ITEM DETAILS API
 const updateItem = async (req, res) => {
     try {
         const itemId = req.params.id;
@@ -145,6 +171,9 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
+        // Whitelist editable fields only — prevents a client from directly
+        // overwriting currentStock, createdBy, _id, etc. via this endpoint.
+        // Stock changes must go through updateStock() so they stay audited.
         const updateData = {};
         const errors = [];
 
@@ -179,10 +208,13 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
+        // EC11 — block renaming into a duplicate (case-insensitive) among
+        // active items, same rule createItem already enforces on creation.
         if (updateData.itemName !== undefined) {
             const duplicate = await InventoryModel.findOne({
                 _id: { $ne: itemId },
-                itemName: { $regex: `^${escapeRegex(updateData.itemName.trim())}$`, $options: 'i' }
+                itemName: { $regex: `^${escapeRegex(updateData.itemName.trim())}$`, $options: 'i' },
+                isArchived: { $ne: true }
             });
             if (duplicate) {
                 return res.status(409).json({ error: "An item with this name already exists" });
@@ -199,6 +231,7 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
+        // Audit log — item details edited (EC57 needs old value traceable)
         await createLog({
             req,
             logType: 'inventory',
@@ -231,6 +264,7 @@ const updateStock = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
+        // EC23 — only numeric, positive quantities accepted
         if (typeof quantityChanged !== 'number' || isNaN(quantityChanged) || quantityChanged <= 0) {
             await logValidationFailure(req, `updateStock rejected: invalid quantityChanged (${JSON.stringify(quantityChanged)})`);
             return res.status(400).json({ error: "Quantity must be a positive number" });
@@ -252,7 +286,7 @@ const updateStock = async (req, res) => {
         // so the race is gone and a deduction still can never take stock
         // below 0.
         const delta = actionType === 'restock' ? quantityChanged : -quantityChanged;
-        const filter = { _id: itemId };
+        const filter = { _id: itemId, isArchived: { $ne: true } };
         if (actionType === 'used-today') {
             filter.currentStock = { $gte: quantityChanged };
         }
@@ -264,11 +298,12 @@ const updateStock = async (req, res) => {
         );
 
         if (!updatedItem) {
-            // Either the item doesn't exist, or (for a deduction) the guard
-            // failed because current stock is now lower than requested —
-            // re-fetch to tell the two cases apart for a clear error message.
+            // Either the item doesn't exist/is archived, or (for a
+            // deduction) the guard failed because current stock is lower
+            // than requested — re-fetch to tell the two cases apart for a
+            // clear error message.
             const existing = await InventoryModel.findById(itemId);
-            if (!existing) {
+            if (!existing || existing.isArchived) {
                 return res.status(404).json({ error: "Item not found" });
             }
             return res.status(400).json({
@@ -279,6 +314,9 @@ const updateStock = async (req, res) => {
         const newStock = updatedItem.currentStock;
         const previousStock = newStock - delta;
 
+        // Audit log — every stock change is tracked (the client's core ask).
+        // Feature: `notes` is now populated from the Stock Update modal's
+        // optional Reason field, instead of always being the default ''.
         await createLog({
             req,
             logType: 'inventory',
@@ -302,6 +340,11 @@ const updateStock = async (req, res) => {
     }
 };
 
+// Feature: soft-delete/archive instead of a permanent delete. The item
+// stays in the database (so historical logs remain fully joinable, and an
+// accidental delete can be undone with restoreItem below) but is excluded
+// from the normal inventory views. The route/method (DELETE /inventory/:id)
+// is unchanged, only the underlying behavior.
 const deleteItem = async (req, res) => {
     try {
         const itemId = req.params.id;
@@ -310,30 +353,99 @@ const deleteItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        const deletedItem = await InventoryModel.findByIdAndDelete(itemId);
+        const archivedItem = await InventoryModel.findOneAndUpdate(
+            { _id: itemId, isArchived: { $ne: true } },
+            { isArchived: true },
+            { new: true }
+        );
 
-        if (!deletedItem) {
-            return res.status(404).json({ error: "Item not found" });
+        if (!archivedItem) {
+            const existing = await InventoryModel.findById(itemId);
+            if (!existing) {
+                return res.status(404).json({ error: "Item not found" });
+            }
+            return res.status(409).json({ error: "This item is already archived." });
         }
 
+        // Audit log — item archived (EC41: must capture item name, action,
+        // admin account, IP, and time — all captured here)
         await createLog({
             req,
             logType: 'inventory',
             actionType: 'delete-item',
-            itemId: deletedItem._id.toString(),
-            itemName: deletedItem.itemName,
-            previousStock: deletedItem.currentStock,
-            newStock: 0,
-            measurementUnit: deletedItem.measurementUnit,
-            notes: 'Item deleted'
+            itemId: archivedItem._id.toString(),
+            itemName: archivedItem.itemName,
+            previousStock: archivedItem.currentStock,
+            newStock: archivedItem.currentStock,
+            measurementUnit: archivedItem.measurementUnit,
+            notes: 'Item archived'
         });
 
         return res.status(200).json({
-            message: "Item deleted successfully",
-            item: deletedItem
+            message: "Item archived successfully",
+            item: archivedItem
         });
     } catch (error) {
-        console.error("Error deleting item:", error);
+        console.error("Error archiving item:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// Feature: bring an archived item back into the active inventory.
+const restoreItem = async (req, res) => {
+    try {
+        const itemId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
+        const restoredItem = await InventoryModel.findOneAndUpdate(
+            { _id: itemId, isArchived: true },
+            { isArchived: false },
+            { new: true }
+        );
+
+        if (!restoredItem) {
+            const existing = await InventoryModel.findById(itemId);
+            if (!existing) {
+                return res.status(404).json({ error: "Item not found" });
+            }
+            return res.status(409).json({ error: "This item isn't archived." });
+        }
+
+        // Restoring under a name that now collides with an active item
+        // would break the uniqueness rule createItem/updateItem enforce —
+        // roll back rather than leaving two active items with the same name.
+        const duplicate = await InventoryModel.findOne({
+            _id: { $ne: itemId },
+            itemName: { $regex: `^${escapeRegex(restoredItem.itemName.trim())}$`, $options: 'i' },
+            isArchived: { $ne: true }
+        });
+        if (duplicate) {
+            await InventoryModel.findByIdAndUpdate(itemId, { isArchived: true });
+            return res.status(409).json({ error: "An active item with this name already exists. Rename or remove that item first." });
+        }
+
+        // Audit log — item restored from archive
+        await createLog({
+            req,
+            logType: 'inventory',
+            actionType: 'restore-item',
+            itemId: restoredItem._id.toString(),
+            itemName: restoredItem.itemName,
+            previousStock: restoredItem.currentStock,
+            newStock: restoredItem.currentStock,
+            measurementUnit: restoredItem.measurementUnit,
+            notes: 'Item restored from archive'
+        });
+
+        return res.status(200).json({
+            message: "Item restored successfully",
+            item: restoredItem
+        });
+    } catch (error) {
+        console.error("Error restoring item:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -344,5 +456,6 @@ module.exports = {
     searchItems,
     updateItem,
     updateStock,
-    deleteItem
+    deleteItem,
+    restoreItem
 };
