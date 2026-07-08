@@ -11,7 +11,11 @@ async function authenticate(email: string, password: string) {
 
 function Login() {
   const navigate = useNavigate()
-  const { refreshUser } = useUser()
+  // Bug fix (#6): also grab setPreviousLogin so the "previous login"
+  // snapshot the backend computes (see login() in user.controller.js) is
+  // actually captured somewhere — it used to be read off the response and
+  // then thrown away entirely.
+  const { refreshUser, setPreviousLogin } = useUser()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +30,7 @@ function Login() {
 
     try {
       const authResult = await authenticate(email, password)
+      setPreviousLogin(authResult.previousLogin ?? null)
       await refreshUser()
       if (authResult.role === 'admin') {
         navigate('/admin/inventory')
