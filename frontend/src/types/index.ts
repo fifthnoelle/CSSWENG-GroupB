@@ -14,11 +14,24 @@ export interface User {
   lastLoginIp?: string
 }
 
+// Bug fix (#6): the login response includes a `previousLogin` snapshot —
+// the login/failure state from BEFORE the login that just happened, meant
+// to flag things like "a failed attempt happened before you got in." This
+// was being computed by the backend but never read or shown by the
+// frontend. See UserContext.tsx / Sidebar.tsx / Login.tsx.
+export interface PreviousLogin {
+  lastLoginAt: string | null
+  lastLoginStatus: 'success' | 'failed' | null
+  lastLoginIp?: string
+}
+
 export interface UserContextType {
   user: User | null
   loading: boolean
+  previousLogin: PreviousLogin | null
   refreshUser: () => Promise<void>
   clearUser: () => void
+  setPreviousLogin: (previousLogin: PreviousLogin | null) => void
 }
 
 export interface ProtectedRouteProps {
