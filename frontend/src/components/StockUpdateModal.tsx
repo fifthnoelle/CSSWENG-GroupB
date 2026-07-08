@@ -4,12 +4,19 @@ import type { InventoryItem, ActionType } from '../types'
 interface Props {
   item: InventoryItem
   onClose: () => void
-  onSave: (actionType: ActionType, quantityChanged: number) => void
+  // Feature: `notes` is a new third argument. The Logs schema and the Logs
+  // page both already fully support a free-text reason on every stock
+  // change (shown in the table, the detail view, and Excel exports — see
+  // logs.model.js's comment calling out "Sold" / "Waste" / "Restock" as the
+  // intended examples) but there was previously no way to type one in here,
+  // even though this is the single most common action in the app.
+  onSave: (actionType: ActionType, quantityChanged: number, notes: string) => void
 }
 
 function StockUpdateModal({ item, onClose, onSave }: Props) {
   const [activeTab, setActiveTab] = useState<ActionType>('used-today')
   const [quantity, setQuantity] = useState('0')
+  const [notes, setNotes] = useState('')
 
   const isDeduct = activeTab === 'used-today'
   const qtyNum = Number(quantity || 0)
@@ -20,10 +27,14 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
   const exceedsStock = isDeduct && qtyNum > item.currentStock
   const isInvalid = !qtyNum || qtyNum <= 0 || exceedsStock
 
+  const notesPlaceholder = isDeduct
+    ? 'e.g. Sold, Waste/spoilage, Staff meal…'
+    : 'e.g. Supplier delivery, Correction…'
+
   function handleSave(event?: FormEvent) {
     event?.preventDefault()
     if (isInvalid) return
-    onSave(activeTab, qtyNum)
+    onSave(activeTab, qtyNum, notes.trim())
     onClose()
   }
 
@@ -106,6 +117,23 @@ function StockUpdateModal({ item, onClose, onSave }: Props) {
                   Cannot deduct more than current stock ({item.currentStock} {item.measurementUnit}).
                 </p>
               )}
+            </div>
+
+            {/* Reason / notes — optional, feeds the audit log's notes field */}
+            <div>
+              <label htmlFor="notes" className="font-[Archivo] text-sm font-semibold text-[#171a1f] dark:text-[#e5e7eb]">
+                Reason <span className="font-normal text-[#9095a0] dark:text-[#6b7280]">(optional)</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder={notesPlaceholder}
+                rows={2}
+                maxLength={280}
+                className="mt-2 w-full px-3 py-2 border border-[#dee1e6] dark:border-white/10 rounded-md text-sm font-[Archivo] text-[#171a1f] dark:text-[#e5e7eb] placeholder:text-[#9095a0] dark:placeholder:text-[#6b7280] outline-none bg-white dark:bg-[#1f2128] focus:border-[#636AE8] focus:ring-2 focus:ring-[#636AE8]/20 transition resize-none"
+              />
             </div>
 
             {/* Projected stock */}
