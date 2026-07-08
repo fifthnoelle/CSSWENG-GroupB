@@ -10,11 +10,28 @@ const LogsModel = require("../models/logs.model");
  * Logging failures must never block the action that triggered them, so
  * this function swallows its own errors after printing them — see
  * EC43 in the QA doc for the policy discussion on log-write failures.
+ *
+ * Bug fix: this used to read `req.ip` / `req.headers['x-forwarded-for']`
+ * without any guard. Several call sites in user.controller.js (login,
+ * resetPasswordWithAnswer) pass a synthetic `{ session: {...} }` object
+ * instead of the real Express `req`, because the real session isn't
+ * populated yet at that point in the flow. That synthetic object has no
+ * `.headers`, so `req.headers['x-forwarded-for']` threw a TypeError —
+ * caught by the try/catch below and silently logged to the console, which
+ * meant the log entry was never actually saved. Every login-success,
+ * login-failed, account-locked, and password-reset event was silently
+ * missing from the audit trail (and, downstream, the Account Activity
+ * report always showed zero activity).
+ *
+ * Fixed by using optional chaining throughout, and by accepting explicit
+ * actorId/actorName overrides so callers can pass the REAL req (for a
+ * correct ip/headers) while still attributing the log to a specific user
+ * even when req.session isn't populated yet.
  */
 async function createLog({
     req,
     logType,            // 'inventory' | 'accounts'
-    actionType,         // e.g. 'used-today' | 'restock' | 'create-item' | 'edit-item' | 'delete-item' | 'create-user' | 'edit-user' | 'delete-user' | 'edit-role'
+    actionType,         // e.g. 'used-today' | 'restock' | 'create-item' | 'edit-item' | 'delete-item' | 'restore-item' | 'create-user' | 'edit-user' | 'delete-user' | 'edit-role'
     itemId = '',
     itemName = '',
     userTarget = '',
@@ -23,12 +40,18 @@ async function createLog({
     previousStock = 0,
     newStock = 0,
     measurementUnit = '',
-    notes = ''
+    notes = '',
+    // Optional overrides for the acting user's identity. Used when the
+    // action happens before req.session is populated — e.g. any login
+    // attempt (successful or not), where the session literally doesn't
+    // exist yet at the point the log needs to be written.
+    actorId,
+    actorName
 }) {
     try {
         const log = new LogsModel({
-            userId: req.session?.userId || 'unknown',
-            userName: req.session?.email || 'unknown',
+            userId: actorId ? actorId.toString() : (req?.session?.userId || 'unknown'),
+            userName: actorName || req?.session?.email || 'unknown',
             logType,
             actionType,
             itemId,
@@ -40,7 +63,7 @@ async function createLog({
             newStock,
             measurementUnit,
             notes,
-            ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+            ipAddress: req?.ip || req?.headers?.['x-forwarded-for'] || '',
             actionTime: new Date()
         });
         await log.save();
@@ -105,7 +128,7 @@ const getLogs = async (req, res) => {
     }
 };
 
-// GET /logs/:itemId — convenience endpoint for an item's full history
+// GET /logs/item/:itemId — convenience endpoint for an item's full history
 const getLogsByItem = async (req, res) => {
     try {
         const { itemId } = req.params;
