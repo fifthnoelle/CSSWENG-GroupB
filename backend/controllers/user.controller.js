@@ -608,6 +608,70 @@ const changePassword = async (req, res) => {
     }
 };
 
+// Feature: self-service security question update for the logged-in user
+// (any role). Previously only an admin could set a user's security
+// question/answer, and only once, at account-creation time — meaning the
+// admin who created the account always knew the answer meant to prove it
+// was really that user, and there was no way for the user to change it
+// later. Re-authenticates via current password, same reasoning as
+// changePassword: you shouldn't be able to swap in your own recovery
+// question without proving you still know the current credentials.
+const updateSecurityQuestion = async (req, res) => {
+    try {
+        const { currentPassword, securityQuestion, securityAnswer } = req.body;
+
+        if (!req.session.userId) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+        if (!currentPassword || !securityQuestion || !securityQuestion.trim()) {
+            return res.status(400).json({ error: "Current password and a security question are required" });
+        }
+        const answerError = validateSecurityAnswer(securityAnswer);
+        if (answerError) {
+            return res.status(400).json({ error: answerError });
+        }
+
+        const user = await UsersModel.findById(req.session.userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const currentMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!currentMatch) {
+            await createLog({
+                req,
+                logType: 'accounts',
+                actionType: 'login-failed',
+                userTarget: user._id.toString(),
+                userTargetName: `${user.firstName} ${user.lastName}`,
+                notes: 'Failed re-authentication during security question update attempt'
+            });
+            return res.status(401).json({ error: "Current password is incorrect" });
+        }
+
+        user.securityQuestion = securityQuestion.trim();
+        user.securityAnswerHash = await hashPassword(securityAnswer.trim());
+        // A fresh answer means any prior lockout on the old answer is moot.
+        user.securityAnswerAttempts = 0;
+        user.securityAnswerLockedUntil = null;
+        await user.save();
+
+        await createLog({
+            req,
+            logType: 'accounts',
+            actionType: 'edit-user',
+            userTarget: user._id.toString(),
+            userTargetName: `${user.firstName} ${user.lastName}`,
+            notes: 'Security question updated via self-service (re-authenticated)'
+        });
+
+        return res.status(200).json({ message: "Security question updated successfully" });
+    } catch (error) {
+        console.error("Error in updateSecurityQuestion:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 // PUBLIC — step 1 of password recovery: return the user's security question.
 // Generic responses are used everywhere here to avoid leaking which emails exist.
 const GENERIC_RECOVERY_FAIL = "If an account exists for this email with a security question set, you'll be able to continue. Otherwise, contact your administrator.";
@@ -752,6 +816,7 @@ module.exports = {
     searchUsers,
     updateUser,
     changePassword,
+    updateSecurityQuestion,
     getSecurityQuestion,
     resetPasswordWithAnswer
 };
