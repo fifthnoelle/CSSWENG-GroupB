@@ -20,6 +20,7 @@ const actionLabels: Record<string, { label: string; bg: string; text: string }> 
   'create-item':      { label: 'Item Created',      bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
   'edit-item':        { label: 'Item Edited',       bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
   'delete-item':      { label: 'Item Deleted',      bg: 'bg-[#FFE4E6]', text: 'text-[#BE123C]' },
+  'restore-item':     { label: 'Item Restored',     bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
   'create-user':      { label: 'Account Created',   bg: 'bg-[#D1FAE5]', text: 'text-[#047857]' },
   'edit-user':        { label: 'Account Edited',    bg: 'bg-[#E0E7FF]', text: 'text-[#4338CA]' },
   'edit-role':        { label: 'Role Changed',      bg: 'bg-[#FEF3C7]', text: 'text-[#B45309]' },
@@ -55,6 +56,12 @@ function LogsPage() {
     const fromUrl = searchParams.get('logType')
     return fromUrl === 'inventory' || fromUrl === 'accounts' ? fromUrl : ''
   })
+  // Feature: the backend's getLogs already supported filtering by
+  // actionType/startDate/endDate — this page just never exposed controls
+  // for them, only the Inventory/Accounts toggle above.
+  const [actionType, setActionType] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [sort, setSort] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -63,12 +70,17 @@ function LogsPage() {
   const [exporting, setExporting] = useState(false)
   const [detailLog, setDetailLog] = useState<Log | null>(null)
 
+  const hasExtraFilters = !!(actionType || startDate || endDate)
+
   const loadLogs = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       const res = await getLogs({
         logType: logType || undefined,
+        actionType: actionType || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
         sort,
         page,
         limit: 25,
@@ -82,7 +94,7 @@ function LogsPage() {
     } finally {
       setLoading(false)
     }
-  }, [logType, sort, page])
+  }, [logType, actionType, startDate, endDate, sort, page])
 
   useEffect(() => {
     loadLogs()
@@ -90,6 +102,24 @@ function LogsPage() {
 
   function handleFilterChange(next: '' | 'inventory' | 'accounts') {
     setLogType(next)
+    setPage(1)
+  }
+
+  function handleActionTypeChange(next: string) {
+    setActionType(next)
+    setPage(1)
+  }
+
+  function handleDateChange(which: 'start' | 'end', value: string) {
+    if (which === 'start') setStartDate(value)
+    else setEndDate(value)
+    setPage(1)
+  }
+
+  function handleClearExtraFilters() {
+    setActionType('')
+    setStartDate('')
+    setEndDate('')
     setPage(1)
   }
 
@@ -102,6 +132,9 @@ function LogsPage() {
       while (currentPage <= maxPages) {
         const res = await getLogs({
           logType: logType || undefined,
+          actionType: actionType || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
           sort,
           page: currentPage,
           limit: 200,
@@ -184,7 +217,7 @@ function LogsPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 mb-5">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <div className="flex bg-[#f3f4f6] dark:bg-white/5 rounded-md p-1 gap-1">
               {(['', 'inventory', 'accounts'] as const).map(opt => (
                 <button
@@ -199,16 +232,67 @@ function LogsPage() {
               ))}
             </div>
 
+            {/* Feature: action-type filter */}
+            <div className="relative">
+              <select
+                value={actionType}
+                onChange={e => handleActionTypeChange(e.target.value)}
+                className="h-9 pl-3 pr-8 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none cursor-pointer appearance-none"
+              >
+                <option value="">All Actions</option>
+                {Object.entries(actionLabels).map(([key, meta]) => (
+                  <option key={key} value={key}>{meta.label}</option>
+                ))}
+              </select>
+              <img
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
+                src="/assets/icon-chevron-down.svg"
+                alt="chevron"
+              />
+            </div>
+
+            {/* Feature: date-range filter — same idea as the Reports page's
+                Month/Custom Range picker, just simplified to two date
+                inputs since Logs needs day-level, not month-level, precision. */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => handleDateChange('start', e.target.value)}
+                aria-label="From date"
+                className="h-9 px-2 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none"
+              />
+              <span className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280]">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => handleDateChange('end', e.target.value)}
+                aria-label="To date"
+                className="h-9 px-2 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none"
+              />
+            </div>
+
+            {hasExtraFilters && (
+              <button
+                onClick={handleClearExtraFilters}
+                className="font-[Archivo] text-xs font-semibold text-[#636AE8] hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+
             <button
               onClick={() => setSort(s => (s === 'desc' ? 'asc' : 'desc'))}
-              className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 px-3 h-9 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors sm:ml-auto"
             >
               <span className="font-[Archivo] text-sm font-medium text-[#171a1f] dark:text-[#e5e7eb]">
                 {sort === 'desc' ? 'Newest first' : 'Oldest first'}
               </span>
             </button>
+          </div>
 
-            <span className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280] ml-auto">
+          <div className="mb-3">
+            <span className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280]">
               {total} {total === 1 ? 'entry' : 'entries'}
             </span>
           </div>
@@ -221,7 +305,7 @@ function LogsPage() {
             <p className="font-[Archivo] text-sm text-[#BE123C]">{error}</p>
           )}
           {!loading && !error && logs.length === 0 && (
-            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No activity recorded yet.</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No activity recorded for these filters.</p>
           )}
 
           {/* Table */}
