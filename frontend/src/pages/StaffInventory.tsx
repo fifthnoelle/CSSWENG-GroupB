@@ -100,10 +100,12 @@ function Inventory() {
     loadItems()
   }, [])
 
-  async function handleSave(actionType: ActionType, quantityChanged: number) {
+  // Feature: forwards the new optional `notes` field through to the API
+  // (see StockUpdateModal.tsx / inventory.service.ts).
+  async function handleSave(actionType: ActionType, quantityChanged: number, notes: string) {
     if (!selectedItem) return
     try {
-      const result = await updateStockApi(selectedItem._id, actionType as 'used-today' | 'restock', quantityChanged)
+      const result = await updateStockApi(selectedItem._id, actionType as 'used-today' | 'restock', quantityChanged, notes)
       setItems(prev => prev.map(i => (i._id === selectedItem._id ? result.item : i)))
     } catch (err) {
       console.error('Failed to update stock:', err)
