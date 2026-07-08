@@ -32,14 +32,10 @@ function validateNonNegativeNumber(value, fieldLabel) {
     return null;
 }
 
-// Escapes regex metacharacters in user-supplied search/name text before it's
-// interpolated into a $regex filter, so characters like ( ) * + ? etc.
-// can't break the query or degrade search/duplicate-check results.
 function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// 2.4.4 — every validation failure is logged (out-of-range, bad characters, etc.)
 async function logValidationFailure(req, reason) {
     await createLog({
         req,
@@ -59,7 +55,6 @@ const createItem = async (req, res) => {
             lowStockThreshold
         } = req.body;
 
-        // 2.3.1 — reject on any validation failure; never silently sanitize/coerce.
         const errors = [
             validateTextField(itemName, "Item name", MAX_NAME_LENGTH),
             validateTextField(itemType, "Item type", MAX_TYPE_LENGTH),
@@ -73,7 +68,6 @@ const createItem = async (req, res) => {
             return res.status(400).json({ error: errors[0] });
         }
 
-        // EC11 — block duplicate item names (case-insensitive)
         const existing = await InventoryModel.findOne({
             itemName: { $regex: `^${escapeRegex(itemName.trim())}$`, $options: 'i' }
         });
@@ -81,20 +75,18 @@ const createItem = async (req, res) => {
             return res.status(409).json({ error: "An item with this name already exists" });
         }
 
-        // Create item
         const newItem = new InventoryModel({
             itemName,
             itemType,
             measurementUnit,
             startingStock,
             lowStockThreshold,
-            createdBy: req.session.email, // works with current system
+            createdBy: req.session.email,
             createdAt: new Date()
         });
 
         await newItem.save();
 
-        // Audit log — item creation
         await createLog({
             req,
             logType: 'inventory',
@@ -114,14 +106,10 @@ const createItem = async (req, res) => {
 
     } catch (error) {
         console.error("Error creating item:", error);
-
-        return res.status(500).json({
-            error: "Error creating item"
-        });
+        return res.status(500).json({ error: "Error creating item" });
     }
 };
 
-// GET ITEMS API
 const getItems = async (req, res) => {
     try {
         const items = await InventoryModel.find();
@@ -132,19 +120,15 @@ const getItems = async (req, res) => {
     }
 };
 
-// SEARCH ITEMS API
 const searchItems = async (req, res) => {
     try {
         const { query } = req.query;
-
         if (!query) {
             return res.status(400).json({ error: "Search query is required" });
         }
-
         const items = await InventoryModel.find({
             itemName: { $regex: escapeRegex(query), $options: 'i' }
         });
-
         return res.status(200).json(items);
     } catch (error) {
         console.error("Error searching items:", error);
@@ -152,7 +136,6 @@ const searchItems = async (req, res) => {
     }
 };
 
-// EDIT ITEM DETAILS API
 const updateItem = async (req, res) => {
     try {
         const itemId = req.params.id;
@@ -162,9 +145,6 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        // Whitelist editable fields only — prevents a client from directly
-        // overwriting currentStock, createdBy, _id, etc. via this endpoint.
-        // Stock changes must go through updateStock() so they stay audited.
         const updateData = {};
         const errors = [];
 
@@ -199,8 +179,6 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        // EC11 — block renaming into a duplicate (case-insensitive), same
-        // rule createItem already enforces on creation.
         if (updateData.itemName !== undefined) {
             const duplicate = await InventoryModel.findOne({
                 _id: { $ne: itemId },
@@ -221,7 +199,6 @@ const updateItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        // Audit log — item details edited (EC57 needs old value traceable)
         await createLog({
             req,
             logType: 'inventory',
@@ -254,43 +231,54 @@ const updateStock = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        // EC23 — only numeric, positive quantities accepted
         if (typeof quantityChanged !== 'number' || isNaN(quantityChanged) || quantityChanged <= 0) {
             await logValidationFailure(req, `updateStock rejected: invalid quantityChanged (${JSON.stringify(quantityChanged)})`);
             return res.status(400).json({ error: "Quantity must be a positive number" });
         }
 
-        const item = await InventoryModel.findById(itemId);
-        if (!item) {
-            return res.status(404).json({ error: "Item not found" });
-        }
-
-        let newStock;
-        if (actionType === 'restock') {
-            newStock = item.currentStock + quantityChanged;
-        } else if (actionType === 'used-today') {
-            newStock = item.currentStock - quantityChanged;
-        } else {
+        if (actionType !== 'restock' && actionType !== 'used-today') {
             return res.status(400).json({ error: "Invalid actionType" });
         }
 
-        // EC21 — reject deductions that would go below 0 instead of silently
-        // clamping to 0. Clamping hides real usage and breaks accountability.
-        if (newStock < 0) {
-            return res.status(400).json({
-                error: `Cannot deduct ${quantityChanged} ${item.measurementUnit} — only ${item.currentStock} ${item.measurementUnit} in stock.`
-            });
+        // Bug fix (#4): this used to read item.currentStock, compute the
+        // new value in JS, then write it back with a separate
+        // findByIdAndUpdate call. Two concurrent requests updating the
+        // same item could both read the same starting value, and the
+        // second write would silently overwrite the first (a lost-update
+        // race) even though both got logged as if they'd applied cleanly.
+        // Using an atomic $inc — with a query-level guard for deductions —
+        // means MongoDB applies the change against whatever the CURRENT
+        // value is at the moment of the write, not a value read earlier,
+        // so the race is gone and a deduction still can never take stock
+        // below 0.
+        const delta = actionType === 'restock' ? quantityChanged : -quantityChanged;
+        const filter = { _id: itemId };
+        if (actionType === 'used-today') {
+            filter.currentStock = { $gte: quantityChanged };
         }
 
-        const previousStock = item.currentStock;
-
-        const updatedItem = await InventoryModel.findByIdAndUpdate(
-            itemId,
-            { currentStock: newStock },
+        const updatedItem = await InventoryModel.findOneAndUpdate(
+            filter,
+            { $inc: { currentStock: delta } },
             { new: true }
         );
 
-        // Audit log — every stock change is tracked (the client's core ask)
+        if (!updatedItem) {
+            // Either the item doesn't exist, or (for a deduction) the guard
+            // failed because current stock is now lower than requested —
+            // re-fetch to tell the two cases apart for a clear error message.
+            const existing = await InventoryModel.findById(itemId);
+            if (!existing) {
+                return res.status(404).json({ error: "Item not found" });
+            }
+            return res.status(400).json({
+                error: `Cannot deduct ${quantityChanged} ${existing.measurementUnit} — only ${existing.currentStock} ${existing.measurementUnit} in stock.`
+            });
+        }
+
+        const newStock = updatedItem.currentStock;
+        const previousStock = newStock - delta;
+
         await createLog({
             req,
             logType: 'inventory',
@@ -328,8 +316,6 @@ const deleteItem = async (req, res) => {
             return res.status(404).json({ error: "Item not found" });
         }
 
-        // Audit log — item deletion (EC41: must capture item name, action,
-        // admin account, IP, and time — all captured here)
         await createLog({
             req,
             logType: 'inventory',
