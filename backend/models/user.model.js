@@ -3,6 +3,11 @@ const mongoose = require('mongoose');
 const Users = new mongoose.Schema({
   email: { type: String, unique: true, lowercase: true, trim: true },
   firstName: { type: String },
+  // Bug fix: the Create/Edit Account forms already collect a middle name
+  // (and the frontend User type already declared it), but this field
+  // never existed on the schema, so it was silently discarded on every
+  // save. Added here so it actually persists.
+  middleName: { type: String, default: '' },
   lastName: { type: String },
   password: { type: String },
   role: { type: String, enum: ['admin', 'staff'], default: 'staff' },
