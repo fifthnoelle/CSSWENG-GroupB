@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../services/auth.service'
 import ChangePasswordModal from './ChangePasswordModal'
+import SecurityQuestionModal from './SecurityQuestionModal'
 import { useTheme } from '../context/ThemeContext'
 import { useUser } from '../context/UserContext'
 
@@ -24,6 +25,8 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
+  // Feature: self-service security question management
+  const [showSecurityQuestion, setShowSecurityQuestion] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   // Bug fix (#6): the backend computes a "previous login" snapshot at login
@@ -144,6 +147,12 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
               Change Password
             </button>
             <button
+              onClick={() => { setMenuOpen(false); setShowSecurityQuestion(true) }}
+              className="w-full text-left px-3 py-2 text-sm font-[Archivo] font-medium text-[#171a1f] dark:text-[#e5e7eb] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              Security Question
+            </button>
+            <button
               onClick={handleLogout}
               className="w-full text-left px-3 py-2 text-sm font-[Archivo] font-medium text-[#93191d] dark:text-[#f87171] hover:bg-[#fdf2f2] dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
@@ -209,6 +218,10 @@ function Sidebar({ user, navItems, mobileOpen = false, onMobileClose }: SidebarP
 
       {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {showSecurityQuestion && (
+        <SecurityQuestionModal onClose={() => setShowSecurityQuestion(false)} />
       )}
     </>
   )
