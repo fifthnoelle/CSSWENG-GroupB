@@ -71,8 +71,22 @@ function LogsPage() {
   const [detailLog, setDetailLog] = useState<Log | null>(null)
 
   const hasExtraFilters = !!(actionType || startDate || endDate)
+  // Bug fix: nothing stopped the "From" date from being picked later than
+  // the "To" date — the query would silently just come back empty (the
+  // backend applies $gte/$lte independently, so start > end simply never
+  // matches anything), which reads as "no activity happened" rather than
+  // "the filter itself doesn't make sense."
+  const invalidRange = !!(startDate && endDate && startDate > endDate)
 
   const loadLogs = useCallback(async () => {
+    if (invalidRange) {
+      setLogs([])
+      setTotalPages(1)
+      setTotal(0)
+      setLoading(false)
+      setError('')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -124,6 +138,10 @@ function LogsPage() {
   }
 
   async function handleExportExcel() {
+    if (invalidRange) {
+      alert('The "From" date is after the "To" date — fix the date range before exporting.')
+      return
+    }
     setExporting(true)
     try {
       const allLogs: Log[] = []
@@ -259,18 +277,30 @@ function LogsPage() {
                 type="date"
                 value={startDate}
                 onChange={e => handleDateChange('start', e.target.value)}
+                max={endDate || undefined}
                 aria-label="From date"
-                className="h-9 px-2 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none"
+                className={`h-9 px-2 bg-white dark:bg-[#1f2128] border rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none ${
+                  invalidRange ? 'border-[#FECDD3] dark:border-[#991b1b]' : 'border-[#dee1e6] dark:border-white/10'
+                }`}
               />
               <span className="font-[Archivo] text-xs text-[#9095a0] dark:text-[#6b7280]">to</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => handleDateChange('end', e.target.value)}
+                min={startDate || undefined}
                 aria-label="To date"
-                className="h-9 px-2 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none"
+                className={`h-9 px-2 bg-white dark:bg-[#1f2128] border rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none ${
+                  invalidRange ? 'border-[#FECDD3] dark:border-[#991b1b]' : 'border-[#dee1e6] dark:border-white/10'
+                }`}
               />
             </div>
+
+            {invalidRange && (
+              <span className="font-[Archivo] text-xs text-[#BE123C] dark:text-[#fca5a5]">
+                "From" date is after "To" date
+              </span>
+            )}
 
             {hasExtraFilters && (
               <button
@@ -305,7 +335,9 @@ function LogsPage() {
             <p className="font-[Archivo] text-sm text-[#BE123C]">{error}</p>
           )}
           {!loading && !error && logs.length === 0 && (
-            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">No activity recorded for these filters.</p>
+            <p className="font-[Archivo] text-sm text-[#565e6c] dark:text-[#9095a0]">
+              {invalidRange ? 'Fix the date range above to see results.' : 'No activity recorded for these filters.'}
+            </p>
           )}
 
           {/* Table */}
