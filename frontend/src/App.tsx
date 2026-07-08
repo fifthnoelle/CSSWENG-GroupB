@@ -37,12 +37,19 @@ function App() {
                 </AdminRoute>
               }
             />
+            {/* Bug fix (#5): this was <ProtectedRoute> (any authenticated
+                user), inconsistent with every other admin-only page below.
+                Account management is admin-only server-side (every
+                /register, /update-user, /delete-user, /load-users,
+                /search-users route requires requireAdmin) — a staff member
+                landing here used to get a broken page (every API call
+                403s) instead of the clean redirect AdminRoute gives. */}
             <Route
               path="/accounts"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <AccountManager />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             {/* Logs & Reports are Admin/Owner-only per the master doc permissions table */}
