@@ -11,12 +11,26 @@ const statusBadge: Record<StockStatus, { bg: string; text: string; label: string
 }
 
 function NotificationBell() {
-  const { notifications } = useNotifications()
+  // Bug fix (#7): `reload` was already returned by the hook but never
+  // called anywhere — the bell only ever refreshed on mount/role-change,
+  // so it could show stale data (e.g. an item restocked from "low stock"
+  // would still show up here until a full page reload). Combined with the
+  // polling interval added in useNotifications.ts, opening the bell now
+  // also forces an immediate refresh.
+  const { notifications, reload } = useNotifications()
   const { user } = useUser()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
   const count = notifications.length
+
+  function toggleOpen() {
+    setOpen(o => {
+      const next = !o
+      if (next) reload()
+      return next
+    })
+  }
 
   function goTo(item: typeof notifications[number]) {
     setOpen(false)
@@ -30,7 +44,7 @@ function NotificationBell() {
   return (
     <div className="relative shrink-0">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={toggleOpen}
         className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
       >
         <img className="w-5 h-5 dark:invert" src="/assets/icon-bell.svg" alt="notifications" />
