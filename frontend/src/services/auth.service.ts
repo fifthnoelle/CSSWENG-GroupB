@@ -137,3 +137,27 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
   return res.json()
 }
+
+// Feature: self-service security question update, re-authenticated
+// server-side with currentPassword — same pattern as changePassword above.
+export async function updateSecurityQuestion(currentPassword: string, securityQuestion: string, securityAnswer: string) {
+  const res = await fetch(`${BASE_URL}/update-security-question`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, securityQuestion, securityAnswer }),
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to update security question'
+    try {
+      const errorBody = await res.json()
+      if (errorBody?.error) errorMessage = errorBody.error
+    } catch {
+      // ignore invalid JSON body
+    }
+    throw new Error(errorMessage)
+  }
+
+  return res.json()
+}
