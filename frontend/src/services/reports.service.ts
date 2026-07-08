@@ -1,6 +1,10 @@
 // Reports service — all API calls for monthly summaries & inactive-item alerts (Admin/Owner only)
 
-import { BASE_URL } from './auth.service'
+// Bug fix (#8): local parseError (identical to this) replaced with the
+// shared version from auth.service.ts, so user.service.ts and
+// inventory.service.ts now behave the same way on a 401 as this file
+// already did.
+import { BASE_URL, parseApiError as parseError } from './auth.service'
 
 export interface MonthlySummaryItem {
   itemId: string
@@ -56,20 +60,6 @@ export interface AccountActivityResponse {
     deleted: number
     roleChanges: number
     events: AccountChangeEvent[]
-  }
-}
-
-async function parseError(res: Response, fallback: string) {
-  if (res.status === 401) {
-    // Session expired server-side while the frontend still thought it was logged in.
-    // Bounce to login instead of leaving a dead error on screen.
-    window.location.href = '/login'
-  }
-  try {
-    const body = await res.json()
-    return body?.error || body?.message || fallback
-  } catch {
-    return fallback
   }
 }
 
