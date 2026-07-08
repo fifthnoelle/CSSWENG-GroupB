@@ -186,12 +186,15 @@ function AccountManager() {
     setUsers(prev => prev.filter(u => u._id !== _id))
   }
 
+  // Bug fix (#2): `userId` is gone from this data shape — CreateAccountModal
+  // no longer collects it (it was never saved by the backend anyway).
+  // `middleName` is now actually forwarded to createUser() below instead of
+  // being silently dropped.
   async function handleCreate(data: {
     firstName: string
     middleName: string
     lastName: string
     email: string
-    userId: string
     password: string
     role: 'admin' | 'staff'
     securityQuestion: string
@@ -200,6 +203,7 @@ function AccountManager() {
     await createUser({
       email: data.email,
       firstName: data.firstName,
+      middleName: data.middleName,
       lastName: data.lastName,
       password: data.password,
       role: data.role,
@@ -211,9 +215,17 @@ function AccountManager() {
     setUsers(refreshed)
   }
 
-  async function handleEdit(email: string, firstName: string, lastName: string, role: 'admin' | 'staff') {
+  // Bug fix (#3): forwards the optional new password from UserUpdateModal
+  // through to the API — previously there was no way to send one at all.
+  async function handleEdit(email: string, firstName: string, lastName: string, role: 'admin' | 'staff', password?: string) {
     if (!userToEdit) return
-    const result = await updateUser(userToEdit._id, { email, firstName, lastName, role })
+    const result = await updateUser(userToEdit._id, {
+      email,
+      firstName,
+      lastName,
+      role,
+      ...(password ? { password } : {}),
+    })
     setUsers(prev => prev.map(u => (u._id === userToEdit._id ? result.user : u)))
   }
 
@@ -343,7 +355,6 @@ function AccountManager() {
       {userToEdit && (
         <UserUpdateModal
           user={userToEdit}
-          userId={currentUser._id}
           isLastAdmin={isEditingLastAdmin}
           onClose={() => setUserToEdit(null)}
           onSave={handleEdit}
