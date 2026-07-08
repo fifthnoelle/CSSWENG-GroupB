@@ -33,7 +33,6 @@ interface Props {
     middleName: string
     lastName: string
     email: string
-    userId: string
     password: string
     role: 'admin' | 'staff'
     securityQuestion: string
@@ -46,7 +45,6 @@ function CreateAccountModal({ onClose, onSave }: Props) {
   const [middleName, setMiddleName] = useState('')
   const [lastName, setLastName]     = useState('')
   const [email, setEmail]           = useState('')
-  const [userId, setUserId]         = useState('')
   const [password, setPassword]     = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole]             = useState<'admin' | 'staff'>('staff')
@@ -78,8 +76,13 @@ function CreateAccountModal({ onClose, onSave }: Props) {
     setPasswordTouched(true)
     setConfirmTouched(true)
     setAnswerTouched(true)
+    // Bug fix (#2): this used to also require a "User ID" value here —
+    // that field has been removed entirely. It was never saved by the
+    // backend (no such field exists on the Users schema), so requiring it
+    // just made admins type something that was silently thrown away. The
+    // "User ID" shown later on each account card is the real database _id.
     if (
-      !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
+      !firstName.trim() || !lastName.trim() || !email.trim() ||
       !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
     ) return
 
@@ -91,7 +94,6 @@ function CreateAccountModal({ onClose, onSave }: Props) {
         middleName: middleName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        userId: userId.trim(),
         password: password.trim(),
         role,
         securityQuestion: securityQuestion.trim(),
@@ -256,39 +258,25 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             )}
           </div>
 
-          {/* User ID + Role */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>User ID</label>
-              <input
-                id="userId"
-                name="userId"
-                type="text"
-                value={userId}
-                onChange={e => setUserId(e.target.value)}
-                placeholder="USR-0008"
-                className={inputClass}
+          {/* Role */}
+          <div>
+            <label className={labelClass}>Role</label>
+            <div className="relative">
+              <select
+                id="role"
+                name="role"
+                value={role}
+                onChange={e => setRole(e.target.value as 'admin' | 'staff')}
+                className={`${inputClass} appearance-none pr-8 cursor-pointer`}
+              >
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+              <img
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
+                src="/assets/icon-arrow-down.svg"
+                alt="chevron"
               />
-            </div>
-            <div>
-              <label className={labelClass}>Role</label>
-              <div className="relative">
-                <select
-                  id="role"
-                  name="role"
-                  value={role}
-                  onChange={e => setRole(e.target.value as 'admin' | 'staff')}
-                  className={`${inputClass} appearance-none pr-8 cursor-pointer`}
-                >
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <img
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
-                  src="/assets/icon-arrow-down.svg"
-                  alt="chevron"
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -347,7 +335,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
             type="submit"
             disabled={
               isSaving ||
-              !firstName.trim() || !lastName.trim() || !email.trim() || !userId.trim() ||
+              !firstName.trim() || !lastName.trim() || !email.trim() ||
               !passwordValid || !passwordsMatch || !securityQuestion.trim() || !answerValid
             }
             className="h-10 px-6 bg-[#636AE8] rounded-md font-[Archivo] text-sm font-semibold text-white shadow-sm hover:bg-[#4f56d4] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
