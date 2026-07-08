@@ -61,11 +61,6 @@ async function destroySessionsForUser(userId) {
     }
 }
 
-/*
-    TODO:
-    - update user details (admin only)
-    - delete user (admin only)
-*/
 const login = async (req, res) => {
     try {
         const { email: rawEmail, password } = req.body;
@@ -84,8 +79,12 @@ const login = async (req, res) => {
         if (!user) {
             // 2.4.5 — log failed attempts even when the account doesn't exist,
             // without revealing that fact to the caller.
+            // Bug fix (#1): this used to pass req: { session: {} } — a fake
+            // object with no .ip/.headers — which made createLog() throw
+            // internally and silently drop the log entry. Passing the real
+            // `req` fixes both the crash and the missing IP on the log.
             await createLog({
-                req: { session: {} },
+                req,
                 logType: 'accounts',
                 actionType: 'login-failed',
                 userTargetName: email,
@@ -96,8 +95,13 @@ const login = async (req, res) => {
 
         // US-B1 AC: lock the account after 5+ failed attempts in a row.
         if (user.lockedUntil && user.lockedUntil > new Date()) {
+            // Bug fix (#1): pass the real `req` (for ip/headers) plus
+            // explicit actorId/actorName overrides, since req.session isn't
+            // populated yet at this point in the login flow.
             await createLog({
-                req: { session: { userId: user._id, email: user.email } },
+                req,
+                actorId: user._id,
+                actorName: user.email,
                 logType: 'accounts',
                 actionType: 'login-failed',
                 userTarget: user._id.toString(),
@@ -121,7 +125,9 @@ const login = async (req, res) => {
                 lockedOut = true;
 
                 await createLog({
-                    req: { session: { userId: user._id, email: user.email } },
+                    req,
+                    actorId: user._id,
+                    actorName: user.email,
                     logType: 'accounts',
                     actionType: 'account-locked',
                     userTarget: user._id.toString(),
@@ -140,7 +146,9 @@ const login = async (req, res) => {
             // 2.4.5 — log every failed authentication attempt, including lockout
             if (!lockedOut) {
                 await createLog({
-                    req: { session: { userId: user._id, email: user.email } },
+                    req,
+                    actorId: user._id,
+                    actorName: user.email,
                     logType: 'accounts',
                     actionType: 'login-failed',
                     userTarget: user._id.toString(),
@@ -176,7 +184,9 @@ const login = async (req, res) => {
 
         // 2.4.5 — log successful authentication attempts too
         await createLog({
-            req: { session: { userId: user._id, email: user.email } },
+            req,
+            actorId: user._id,
+            actorName: user.email,
             logType: 'accounts',
             actionType: 'login-success',
             userTarget: user._id.toString(),
@@ -260,7 +270,7 @@ const getAllUsers = async (req, res) => {
 //Only admin can register new users. Route protected by admin authentication middleware in auth.js
 const register = async (req, res) => {
     try {
-        const { email: rawEmail, firstName, lastName, password, role, securityQuestion, securityAnswer } = req.body;
+        const { email: rawEmail, firstName, middleName, lastName, password, role, securityQuestion, securityAnswer } = req.body;
 
         if (!rawEmail || !firstName || !lastName || !password) {
             return res.status(400).json({ error: "All fields are required" });
@@ -291,6 +301,12 @@ const register = async (req, res) => {
         const newUser = new UsersModel({
             email,
             firstName,
+            // Bug fix (#2): middleName was already being collected on the
+            // Create Account form (which also required a "User ID" that
+            // went nowhere at all — that field has been removed from the
+            // form, see CreateAccountModal.tsx) but was never saved here.
+            // It's optional.
+            middleName: typeof middleName === 'string' ? middleName.trim() : '',
             lastName,
             password: hashedPassword,
             passwordHistory: [hashedPassword],
@@ -336,7 +352,7 @@ const register = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const { email: rawEmail, firstName, lastName, role, password } = req.body;
+        const { email: rawEmail, firstName, middleName, lastName, role, password } = req.body;
 
         if (!rawEmail || !firstName || !lastName) {
             return res.status(400).json({ error: "Email, first name, and last name are required" });
@@ -362,6 +378,11 @@ const updateUser = async (req, res) => {
         }
 
         const updateFields = { email, firstName, lastName, role: role || 'staff' };
+        // Bug fix (#2): middleName is optional and now actually persisted
+        // (see user.model.js) — pass it through the same as first/last name.
+        if (middleName !== undefined) {
+            updateFields.middleName = typeof middleName === 'string' ? middleName.trim() : '';
+        }
 
         if (password && password.trim() !== '') {
             const policyError = validatePasswordPolicy(password);
@@ -375,6 +396,14 @@ const updateUser = async (req, res) => {
                 ? targetBeforeUpdate.passwordHistory
                 : [targetBeforeUpdate.password];
             updateFields.passwordHistory = [...existingHistory, newHash].slice(-10);
+
+            // Bug fix (#3): an admin resetting a user's password is, in
+            // practice, almost always trying to get a locked-out or
+            // forgotten-password user back into the account — clear any
+            // active lockout too, or the new password wouldn't actually be
+            // usable until the lockout timer separately expires.
+            updateFields.failedLoginAttempts = 0;
+            updateFields.lockedUntil = null;
         }
 
         const updatedUser = await UsersModel.findByIdAndUpdate(
@@ -389,6 +418,7 @@ const updateUser = async (req, res) => {
 
         // Audit log — distinguish a role change from a general profile edit
         const roleChanged = targetBeforeUpdate.role !== updatedUser.role;
+        const passwordChanged = !!(password && password.trim() !== '');
         await createLog({
             req,
             logType: 'accounts',
@@ -397,13 +427,16 @@ const updateUser = async (req, res) => {
             userTargetName: `${updatedUser.firstName} ${updatedUser.lastName}`,
             notes: roleChanged
                 ? `Role changed: ${targetBeforeUpdate.role} -> ${updatedUser.role}`
-                : 'Account details updated'
+                : (passwordChanged ? 'Account details updated (including password reset by admin)' : 'Account details updated')
         });
 
         // A role change must take effect immediately, not whenever this
         // user's existing session cookie happens to expire — kill any
-        // active session(s) they're currently signed in with.
-        if (roleChanged) {
+        // active session(s) they're currently signed in with. Do the same
+        // for a password reset — an admin resetting a password expects the
+        // OLD password to stop working everywhere immediately, including
+        // any session started with it.
+        if (roleChanged || passwordChanged) {
             await destroySessionsForUser(updatedUser._id.toString());
         }
 
@@ -642,8 +675,13 @@ const resetPasswordWithAnswer = async (req, res) => {
             }
             await user.save();
 
+            // Bug fix (#1): pass the real `req` (for ip/headers) plus
+            // explicit actorId/actorName overrides, instead of a fake req
+            // object that made createLog() throw and silently drop this entry.
             await createLog({
-                req: { session: { userId: user._id, email: user.email } },
+                req,
+                actorId: user._id,
+                actorName: user.email,
                 logType: 'accounts',
                 actionType: 'login-failed',
                 userTarget: user._id.toString(),
@@ -682,8 +720,12 @@ const resetPasswordWithAnswer = async (req, res) => {
         user.securityAnswerLockedUntil = null;
         await user.save();
 
+        // Bug fix (#1): same as above — pass the real `req` plus explicit
+        // actor overrides so this log entry actually gets saved.
         await createLog({
-            req: { session: { userId: user._id, email: user.email } },
+            req,
+            actorId: user._id,
+            actorName: user.email,
             logType: 'accounts',
             actionType: 'edit-user',
             userTarget: user._id.toString(),
