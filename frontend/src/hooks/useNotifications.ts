@@ -14,6 +14,15 @@ function getStockStatus(item: InventoryItem): StockStatus {
   return 'in-stock'
 }
 
+// Bug fix (#7): the bell used to only ever load once per mount (or when
+// the user's role changed) — e.g. restocking an item that was flagged
+// "low stock" wouldn't clear it from the bell until the page was fully
+// reloaded, since the bell keeps its own separate copy of this data rather
+// than sharing state with whichever page triggered the change. Polling on
+// a modest interval keeps it reasonably fresh without having to wire a
+// manual "reload" call into every single mutation across every page.
+const POLL_INTERVAL_MS = 60_000
+
 /**
  * Single source of truth for the notification bell. Every page renders the
  * same combined feed for the logged-in user — low/out-of-stock items for
@@ -72,6 +81,8 @@ export function useNotifications() {
 
   useEffect(() => {
     load()
+    const interval = setInterval(load, POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [load])
 
   return { notifications, loading, reload: load }
