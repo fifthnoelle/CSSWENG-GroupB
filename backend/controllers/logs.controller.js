@@ -99,7 +99,16 @@ const getLogs = async (req, res) => {
         if (startDate || endDate) {
             filter.actionTime = {};
             if (startDate) filter.actionTime.$gte = new Date(startDate);
-            if (endDate) filter.actionTime.$lte = new Date(endDate);
+            if (endDate) {
+                // Feature: the Logs page's new date-range filter passes a
+                // plain YYYY-MM-DD value from a <input type="date">, which
+                // parses to midnight UTC — without this, an end date of
+                // "today" would exclude every entry from today. Treat the
+                // end date as inclusive of the whole day.
+                const endOfDay = new Date(endDate);
+                endOfDay.setHours(23, 59, 59, 999);
+                filter.actionTime.$lte = endOfDay;
+            }
         }
 
         const pageNum = Math.max(parseInt(page, 10) || 1, 1);
