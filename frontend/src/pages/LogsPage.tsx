@@ -71,12 +71,29 @@ function LogsPage() {
   const [detailLog, setDetailLog] = useState<Log | null>(null)
 
   const hasExtraFilters = !!(actionType || startDate || endDate)
-  // Bug fix: nothing stopped the "From" date from being picked later than
-  // the "To" date — the query would silently just come back empty (the
-  // backend applies $gte/$lte independently, so start > end simply never
-  // matches anything), which reads as "no activity happened" rather than
-  // "the filter itself doesn't make sense."
-  const invalidRange = !!(startDate && endDate && startDate > endDate)
+  // Today as YYYY-MM-DD, matching a <input type="date"> value — used to
+  // cap both filters so nobody can pick a date that hasn't happened yet
+  // (there can never be a log entry for the future).
+  const today = new Date().toISOString().slice(0, 10)
+  // Bug fixes: two problems with the raw date inputs —
+  // 1) nothing stopped "From" from being picked later than "To" — the
+  //    query would silently just come back empty (the backend applies
+  //    $gte/$lte independently, so start > end simply never matches
+  //    anything), which read as "no activity happened" rather than "the
+  //    filter itself doesn't make sense."
+  // 2) nothing stopped either date from being set in the future, even
+  //    though a log entry for a date that hasn't happened yet is
+  //    impossible by definition.
+  // The min/max attributes on the inputs below handle this for the
+  // calendar picker; this message is the fallback for manual typing,
+  // which can slip past min/max in some browsers.
+  const dateRangeError =
+    (startDate && startDate > today) || (endDate && endDate > today)
+      ? "Dates can't be in the future"
+      : startDate && endDate && startDate > endDate
+      ? '"From" date is after "To" date'
+      : ''
+  const invalidRange = !!dateRangeError
 
   const loadLogs = useCallback(async () => {
     if (invalidRange) {
@@ -139,7 +156,7 @@ function LogsPage() {
 
   async function handleExportExcel() {
     if (invalidRange) {
-      alert('The "From" date is after the "To" date — fix the date range before exporting.')
+      alert(`${dateRangeError} — fix the date range before exporting.`)
       return
     }
     setExporting(true)
@@ -271,13 +288,17 @@ function LogsPage() {
 
             {/* Feature: date-range filter — same idea as the Reports page's
                 Month/Custom Range picker, just simplified to two date
-                inputs since Logs needs day-level, not month-level, precision. */}
+                inputs since Logs needs day-level, not month-level, precision.
+                Bug fixes: each input's min/max is tied to the other (so
+                "From" can't be picked after "To" and vice versa) AND capped
+                at today (so neither can be a future date — logs can't exist
+                for something that hasn't happened yet). */}
             <div className="flex items-center gap-1.5">
               <input
                 type="date"
                 value={startDate}
                 onChange={e => handleDateChange('start', e.target.value)}
-                max={endDate || undefined}
+                max={endDate || today}
                 aria-label="From date"
                 className={`h-9 px-2 bg-white dark:bg-[#1f2128] border rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none ${
                   invalidRange ? 'border-[#FECDD3] dark:border-[#991b1b]' : 'border-[#dee1e6] dark:border-white/10'
@@ -289,6 +310,7 @@ function LogsPage() {
                 value={endDate}
                 onChange={e => handleDateChange('end', e.target.value)}
                 min={startDate || undefined}
+                max={today}
                 aria-label="To date"
                 className={`h-9 px-2 bg-white dark:bg-[#1f2128] border rounded-md shadow-sm font-[Archivo] text-sm text-[#171a1f] dark:text-[#e5e7eb] outline-none ${
                   invalidRange ? 'border-[#FECDD3] dark:border-[#991b1b]' : 'border-[#dee1e6] dark:border-white/10'
@@ -298,7 +320,7 @@ function LogsPage() {
 
             {invalidRange && (
               <span className="font-[Archivo] text-xs text-[#BE123C] dark:text-[#fca5a5]">
-                "From" date is after "To" date
+                {dateRangeError}
               </span>
             )}
 
