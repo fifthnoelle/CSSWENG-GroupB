@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useRef, useEffect, FormEvent } from 'react'
 
 // Small reusable eye / eye-off toggle button, positioned inside a password
 // field. Inline SVG (not an <img src="/assets/...">) so it can never break
@@ -23,6 +23,69 @@ function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onT
         </svg>
       )}
     </button>
+  )
+}
+
+const roleOptions: { value: 'admin' | 'staff'; label: string }[] = [
+  { value: 'staff', label: 'Staff' },
+  { value: 'admin', label: 'Admin' },
+]
+
+function RoleDropdown({
+  value,
+  onChange,
+  inputClass,
+}: {
+  value: 'admin' | 'staff'
+  onChange: (v: 'admin' | 'staff') => void
+  inputClass: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const selected = roleOptions.find(o => o.value === value)!
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`${inputClass} flex items-center justify-between pr-8 cursor-pointer text-left`}
+      >
+        <span className="font-semibold">{selected.label}</span>
+        <img
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
+          src="/assets/icon-arrow-down.svg"
+          alt="chevron"
+        />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-lg z-20 overflow-hidden">
+          {roleOptions.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`w-full text-left px-3 py-2.5 text-sm font-[Archivo] font-semibold transition-colors
+                ${value === opt.value
+                  ? 'bg-[#636AE8]/10 text-[#636AE8] dark:text-[#818cf8]'
+                  : 'text-[#171a1f] dark:text-[#e5e7eb] hover:bg-gray-50 dark:hover:bg-white/10'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -261,23 +324,7 @@ function CreateAccountModal({ onClose, onSave }: Props) {
           {/* Role */}
           <div>
             <label className={labelClass}>Role</label>
-            <div className="relative">
-              <select
-                id="role"
-                name="role"
-                value={role}
-                onChange={e => setRole(e.target.value as 'admin' | 'staff')}
-                className={`${inputClass} appearance-none pr-8 cursor-pointer`}
-              >
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-              </select>
-              <img
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
-                src="/assets/icon-arrow-down.svg"
-                alt="chevron"
-              />
-            </div>
+            <RoleDropdown value={role} onChange={setRole} inputClass={inputClass} />
           </div>
         </div>
 

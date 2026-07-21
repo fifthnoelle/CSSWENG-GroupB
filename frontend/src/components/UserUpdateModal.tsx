@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useRef, useEffect, FormEvent } from 'react'
 import type { User } from '../types'
 
 // Small reusable eye / eye-off toggle button, positioned inside a password
@@ -24,6 +24,77 @@ function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onT
             )}
         </button>
     )
+}
+
+const roleOptions: { value: 'admin' | 'staff'; label: string }[] = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'staff', label: 'Staff' },
+]
+
+function RoleDropdown({
+  value,
+  onChange,
+  isLastAdmin,
+  inputClass,
+}: {
+  value: 'admin' | 'staff'
+  onChange: (v: 'admin' | 'staff') => void
+  isLastAdmin: boolean
+  inputClass: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const selected = roleOptions.find(o => o.value === value)!
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`${inputClass} flex items-center justify-between pr-8 cursor-pointer text-left`}
+      >
+        <span className="font-semibold">{selected.label}</span>
+        <img
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none dark:invert"
+          src="/assets/icon-arrow-down.svg"
+          alt="chevron"
+        />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#1f2128] border border-[#dee1e6] dark:border-white/10 rounded-md shadow-lg z-20 overflow-hidden">
+          {roleOptions.map(opt => {
+            const disabled = opt.value === 'staff' && isLastAdmin
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => { if (!disabled) { onChange(opt.value); setOpen(false) } }}
+                className={`w-full text-left px-3 py-2.5 text-sm font-[Archivo] font-semibold transition-colors
+                  ${disabled
+                    ? 'text-[#9095a0] dark:text-[#6b7280] cursor-not-allowed'
+                    : value === opt.value
+                      ? 'bg-[#636AE8]/10 text-[#636AE8] dark:text-[#818cf8]'
+                      : 'text-[#171a1f] dark:text-[#e5e7eb] hover:bg-gray-50 dark:hover:bg-white/10'
+                  }`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface Props {
@@ -162,17 +233,13 @@ function UserUpdateModal({ user, isLastAdmin, onClose, onSave }: Props) {
           </div>
 
           <div>
-            <label htmlFor="role" className={labelClass}>Role</label>
-            <select
-              id="role"
-              name="role"
+            <label className={labelClass}>Role</label>
+            <RoleDropdown
               value={role}
-              onChange={e => setRole(e.target.value as 'admin' | 'staff')}
-              className={`${inputClass} dark:bg-[#1f2128]`}
-            >
-              <option value="admin">Admin</option>
-              <option value="staff" disabled={isLastAdmin}>Staff</option>
-            </select>
+              onChange={setRole}
+              isLastAdmin={isLastAdmin}
+              inputClass={inputClass}
+            />
             {isLastAdmin && (
               <p className="mt-1.5 text-xs font-[Archivo] text-[#9095a0] dark:text-[#6b7280]">
                 This is the only Admin account, so it can't be demoted to Staff. Promote another account to Admin first.
